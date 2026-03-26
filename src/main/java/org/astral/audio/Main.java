@@ -2,7 +2,7 @@ package org.astral.audio;
 
 public class Main {
 
-    private static final String finalAudio = "src/main/resources/miss.ogg";
+    private static final String finalAudio = "src/main/resources/power.ogg";
 
     static void main() {
         System.out.println("\u001B[35m[Main] Iniciando Motor de Audio: Modo OpenAL Solitario\u001B[0m");
@@ -35,7 +35,7 @@ public class Main {
         Thread openALThread = new Thread(() -> {
             // Inicialización del contexto nativo de OpenAL (vía LWJGL)
             OpenALAudioEngine.startEngine();
-            OpenALAudioEngine.setLooping(true);
+
 
             // Reproducción y Callback
             OpenALAudioEngine.playNewSong(finalAudio, () -> {
