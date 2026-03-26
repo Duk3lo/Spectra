@@ -3,24 +3,24 @@ package org.astral.audio;
 public class MyHytaleModLogic {
 
     public void onModStart() {
-        BeatAudioEngine.startEngine();
-        BeatAudioEngine.setVolume(0.8f);
+        OpenALAudioEngine.startEngine();
+        OpenALAudioEngine.setVolume(0.8f);
     }
 
     public void onPlayerInput(String key) {
         switch (key) {
             case "P":
-                if (RhythmAPI.isPaused) BeatAudioEngine.resumeSong();
-                else BeatAudioEngine.pauseSong();
+                if (RhythmAPI.isPaused) OpenALAudioEngine.resumeSong();
+                else OpenALAudioEngine.pauseSong();
                 break;
             case "L":
-                BeatAudioEngine.setLooping(true);
+                OpenALAudioEngine.setLooping(true);
                 break;
             case "S":
-                BeatAudioEngine.stopSong();
+                OpenALAudioEngine.stopSong();
                 break;
             case "N":
-                BeatAudioEngine.playNewSong("src/main/resources/nivel_boss.ogg");
+                //BeatAudioEngine.playNewSong("src/main/resources/nivel_boss.ogg");
                 break;
         }
     }
@@ -43,6 +43,6 @@ public class MyHytaleModLogic {
 
     // Se ejecuta al cerrar el servidor o salir del mapa
     public void onModStop() {
-        BeatAudioEngine.shutdown();
+        OpenALAudioEngine.shutdown();
     }
 }

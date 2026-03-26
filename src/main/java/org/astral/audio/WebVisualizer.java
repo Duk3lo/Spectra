@@ -13,14 +13,30 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class WebVisualizer {
 
-    private static HttpServer server;
-    private static final List<OutputStream> clients = new CopyOnWriteArrayList<>();
+    private HttpServer server;
+    private final List<OutputStream> clients = new CopyOnWriteArrayList<>();
 
-    public static void start() {
-        int port = 8080;
+    private final String engineName;
+    private final int startPort;
+    private final VolumeCallback volumeCallback;
+
+    // Interfaz para que cada motor maneje su propio volumen
+    public interface VolumeCallback {
+        void onVolumeChange(float level);
+    }
+
+    // Constructor que recibe el nombre, puerto y el callback del volumen
+    public WebVisualizer(String engineName, int startPort, VolumeCallback volumeCallback) {
+        this.engineName = engineName;
+        this.startPort = startPort;
+        this.volumeCallback = volumeCallback;
+    }
+
+    public void start() {
+        int port = startPort;
         boolean started = false;
 
-        while (!started && port <= 8090) {
+        while (!started && port <= (startPort + 10)) {
             try {
                 server = HttpServer.create(new InetSocketAddress(port), 0);
                 started = true;
@@ -34,23 +50,22 @@ public class WebVisualizer {
         try {
             server.createContext("/", new HtmlHandler());
             server.createContext("/stream", new StreamHandler());
-            // --- ADICIÓN: Nueva ruta para recibir el volumen ---
             server.createContext("/volume", new VolumeHandler());
 
             server.setExecutor(null);
             server.start();
 
             String url = "http://localhost:" + port;
-            System.out.println("\u001B[32m[WebVisualizer] Servidor web iniciado en " + url + "\u001B[0m");
+            System.out.println("\u001B[32m[" + engineName + "] Servidor web iniciado en " + url + "\u001B[0m");
 
             abrirNavegador(url);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Error en la carga web: " + e);
         }
     }
 
-    private static void abrirNavegador(String url) {
+    private void abrirNavegador(String url) {
         String os = System.getProperty("os.name").toLowerCase();
         try {
             if (os.contains("win")) {
@@ -65,9 +80,9 @@ public class WebVisualizer {
         }
     }
 
-    public static void stop() {
+    public void stop() {
         if (server != null) {
-            System.out.println("\u001B[33m[WebVisualizer] Desconectando clientes web y apagando servidor...\u001B[0m");
+            System.out.println("\u001B[33m[" + engineName + "] Desconectando clientes web y apagando servidor...\u001B[0m");
             for (OutputStream os : clients) {
                 try { os.close(); } catch (IOException ignored) {}
             }
@@ -77,7 +92,8 @@ public class WebVisualizer {
         }
     }
 
-    public static void update(float[] bars, float[] beatIntensity, float energy, int combo, float speed, boolean isPaused) {
+    // NUEVO: Se agregaron currentSecs y totalSecs al final de los parametros
+    public void update(float[] bars, float[] beatIntensity, float energy, int combo, float speed, boolean isPaused, float currentSecs, float totalSecs) {
         if (clients.isEmpty() || server == null) return;
 
         StringBuilder sb = new StringBuilder();
@@ -96,9 +112,13 @@ public class WebVisualizer {
         sb.append(",\"combo\":").append(combo);
         sb.append(",\"speed\":").append(String.format(java.util.Locale.US, "%.2f", speed));
         sb.append(",\"paused\":").append(isPaused);
+
+        // NUEVO: Agregamos el tiempo al JSON que va a la web
+        sb.append(",\"current\":").append(String.format(java.util.Locale.US, "%.1f", currentSecs));
+        sb.append(",\"total\":").append(String.format(java.util.Locale.US, "%.1f", totalSecs));
         sb.append("}");
 
-        String payload = "data: " + sb.toString() + "\n\n";
+        String payload = "data: " + sb + "\n\n";
         byte[] bytes = payload.getBytes();
 
         for (OutputStream os : clients) {
@@ -111,15 +131,16 @@ public class WebVisualizer {
         }
     }
 
-    // --- ADICIÓN: Handler para procesar el volumen ---
-    static class VolumeHandler implements HttpHandler {
+    class VolumeHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             String query = exchange.getRequestURI().getQuery();
             if (query != null && query.startsWith("level=")) {
                 try {
                     float level = Float.parseFloat(query.split("=")[1]);
-                    BeatAudioEngine.setVolume(level);
+                    if (volumeCallback != null) {
+                        volumeCallback.onVolumeChange(level);
+                    }
                 } catch (Exception ignored) {}
             }
             exchange.sendResponseHeaders(200, 0);
@@ -127,7 +148,7 @@ public class WebVisualizer {
         }
     }
 
-    static class StreamHandler implements HttpHandler {
+    class StreamHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             exchange.getResponseHeaders().add("Content-Type", "text/event-stream");
@@ -138,10 +159,11 @@ public class WebVisualizer {
         }
     }
 
-    static class HtmlHandler implements HttpHandler {
+    class HtmlHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            String html = getHtmlContent();
+            // Reemplaza dinámicamente el titulo y encabezado con el nombre del Motor
+            String html = getHtmlContent().replace("BEAT ENGINE PRO", engineName.toUpperCase());
             exchange.getResponseHeaders().add("Content-Type", "text/html; charset=UTF-8");
             exchange.sendResponseHeaders(200, html.getBytes(StandardCharsets.UTF_8).length);
             OutputStream os = exchange.getResponseBody();
@@ -155,7 +177,7 @@ public class WebVisualizer {
                     <html lang='es'>
                     <head>
                         <meta charset='UTF-8'>
-                        <title>BeatEngine Pro - Visualizer</title>
+                        <title>BEAT ENGINE PRO - Visualizer</title>
                         <style>
                             body { background-color: #0d0d12; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
                             h1 { margin-bottom: 10px; color: #00ffcc; text-shadow: 0 0 10px #00ffcc; }
@@ -169,29 +191,43 @@ public class WebVisualizer {
                             .stat-title { font-size: 12px; color: #aaa; }
                             #status { position: absolute; top: 20px; left: 20px; color: #ff3366; font-weight: bold; }
                             #overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 999; flex-direction: column; align-items: center; justify-content: center; }
-                            /* --- ADICIÓN: Estilo del Control de Volumen --- */
                             .vol-cont { margin-top: 20px; background: rgba(0,0,0,0.4); padding: 15px 30px; border-radius: 50px; border: 1px solid rgba(0,255,204,0.3); display: flex; align-items: center; gap: 15px; }
                             input[type=range] { cursor: pointer; accent-color: #00ffcc; width: 200px; }
+                           \s
+                            /* NUEVO: ESTILOS PARA LA BARRA DE TIEMPO */
+                            .progress-wrapper { width: 80%; max-width: 940px; margin-top: 15px; display: flex; flex-direction: column; align-items: center; }
+                            .progress-container { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+                            .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #00ffcc, #33ccff); box-shadow: 0 0 10px #00ffcc; transition: width 0.1s linear; }
+                            .time-text { margin-top: 8px; font-size: 14px; font-weight: bold; color: #00ffcc; text-shadow: 0 0 5px #00ffcc; font-family: monospace; letter-spacing: 1px; }
                         </style>
                     </head>
                     <body>
                         <div id='overlay'><h1 style='color:#ff3366; text-shadow: 0 0 20px #ff3366; font-size: 50px;'>JUEGO CERRADO</h1><p>Esta pestaña se puede cerrar de forma segura...</p></div>
                         <div id='status'>EN PAUSA</div>
                         <h1>BEAT ENGINE PRO</h1>
+                       \s
                         <div class='container' id='bars-container'></div>
+                       \s
+                        <!-- NUEVO: BARRA DE TIEMPO VISUAL -->
+                        <div class='progress-wrapper'>
+                            <div class='progress-container'>
+                                <div class='progress-fill' id='progress-fill'></div>
+                            </div>
+                            <div class='time-text' id='time-text'>00:00 / 00:00</div>
+                        </div>
+
                         <div class='stats'>
                             <div class='stat-box'><div class='stat-title'>ENERGÍA GLOBAL</div><div class='stat-value' id='energy-val'>0%</div></div>
                             <div class='stat-box'><div class='stat-title'>RACHA HITS</div><div class='stat-value' id='combo-val' style='color:#ff007f;'>0x</div></div>
                             <div class='stat-box'><div class='stat-title'>VELOCIDAD PARTÍCULAS</div><div class='stat-value' id='speed-val'>1.00x</div></div>
                         </div>
-                    
-                       \s
+                   \s
                         <div class='vol-cont'>
                             <span class='stat-title'>VOLUMEN</span>
                             <input type='range' id='vol-slider' min='0' max='1' step='0.01' value='0.1'>
                             <span id='vol-label' class='stat-value' style='font-size: 16px; min-width: 45px;'>10%</span>
                         </div>
-                    
+                   \s
                         <script>
                             const labels = ['SUB', 'KICK', 'BASS', 'LOW-M', 'MID 1', 'SNARE', 'MID 3', 'MID 4', 'HI-M1', 'HI-M2', 'HAT 1', 'HAT 2', 'HIGH 1', 'HIGH 2', 'AIR 1', 'AIR 2'];
                             const container = document.getElementById('bars-container');
@@ -203,16 +239,15 @@ public class WebVisualizer {
                                 wrap.appendChild(bar); wrap.appendChild(lbl);
                                 container.appendChild(wrap); barElements.push(bar);
                             }
-                           \s
+                          \s
                             const source = new EventSource('/stream');
-                           \s
+                          \s
                             source.onerror = function(event) {
                                  source.close();
                                  document.getElementById('overlay').style.display = 'flex';
                                  setTimeout(() => window.close(), 1500);
                             };
-                    
-                            // --- ADICIÓN: Lógica del Slider ---
+                   \s
                             const slider = document.getElementById('vol-slider');
                             const volLabel = document.getElementById('vol-label');
                             slider.oninput = function() {
@@ -220,9 +255,16 @@ public class WebVisualizer {
                                 volLabel.innerText = Math.round(val * 100) + '%';
                                 fetch('/volume?level=' + val);
                             };
-                            // Inicializar volumen bajo en el motor al cargar
                             fetch('/volume?level=0.1');
-                    
+
+                            // NUEVO: FUNCIÓN PARA FORMATEAR EL TIEMPO
+                            function formatTime(secs) {
+                                if (isNaN(secs) || secs < 0) return "00:00";
+                                let m = Math.floor(secs / 60);
+                                let s = Math.floor(secs % 60);
+                                return (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+                            }
+                   \s
                             source.onmessage = function(event) {
                                 const data = JSON.parse(event.data);
                                 document.getElementById('status').innerText = data.paused ? '⏸ EN PAUSA' : '▶ REPRODUCIENDO';
@@ -230,7 +272,13 @@ public class WebVisualizer {
                                 document.getElementById('energy-val').innerText = Math.round(data.energy * 100) + '%';
                                 document.getElementById('combo-val').innerText = data.combo + 'x';
                                 document.getElementById('speed-val').innerText = data.speed.toFixed(2) + 'x';
-                               \s
+                              \s
+                                // NUEVO: ACTUALIZAR BARRA Y TEXTO DE TIEMPO
+                                let percent = (data.current / data.total) * 100;
+                                if (isNaN(percent)) percent = 0;
+                                document.getElementById('progress-fill').style.width = percent + '%';
+                                document.getElementById('time-text').innerText = formatTime(data.current) + " / " + formatTime(data.total);
+
                                 for(let i=0; i<16; i++) {
                                     let h = Math.pow(Math.min(1.0, data.bars[i]), 1.2) * 100;
                                     if (h < 2) h = 2;
