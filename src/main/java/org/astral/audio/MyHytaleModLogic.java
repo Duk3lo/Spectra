@@ -1,5 +1,7 @@
 package org.astral.audio;
 
+import org.jetbrains.annotations.NotNull;
+
 public class MyHytaleModLogic {
 
     public void onModStart() {
@@ -7,7 +9,7 @@ public class MyHytaleModLogic {
         OpenALAudioEngine.setVolume(0.8f);
     }
 
-    public void onPlayerInput(String key) {
+    public void onPlayerInput(@NotNull String key) {
         switch (key) {
             case "P":
                 if (RhythmAPI.isPaused) OpenALAudioEngine.resumeSong();

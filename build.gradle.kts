@@ -44,11 +44,7 @@ dependencies {
     // JTransforms: El motor FFT de alto rendimiento
     implementation("com.github.wendykierp:JTransforms:3.1")
 
-    // Minim y Soporte Nativo para OGG Vorbis
-    implementation("com.googlecode.soundlibs:tritonus-share:0.3.7.4")
-    implementation("com.googlecode.soundlibs:jorbis:0.0.17.4")
-    implementation("com.googlecode.soundlibs:vorbisspi:1.0.3.3")
-    implementation("net.compartmental.code:minim:2.2.2")
+    compileOnly("org.jetbrains:annotations:24.1.0")
 }
 
 // Esto configura CUALQUIER tarea que ejecute Java (incluyendo 'gradle run')
