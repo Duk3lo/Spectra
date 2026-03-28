@@ -12,7 +12,7 @@ public class MyHytaleModLogic {
     public void onPlayerInput(@NotNull String key) {
         switch (key) {
             case "P":
-                if (RhythmAPI.isPaused) OpenALAudioEngine.resumeSong();
+                if (RhythmAPI.isPaused()) OpenALAudioEngine.resumeSong();
                 else OpenALAudioEngine.pauseSong();
                 break;
             case "L":
@@ -29,7 +29,7 @@ public class MyHytaleModLogic {
 
     // Método simulado del juego que corre cada frame/tick
     public void onUpdate(float deltaTime) {
-        if (RhythmAPI.isPaused) return;
+        if (RhythmAPI.isPaused()) return;
 
         if (RhythmAPI.popBassEvent()) {
             // spawnGiantBlock();
@@ -39,7 +39,7 @@ public class MyHytaleModLogic {
             // givePlayerSpeedBoost();
         }
 
-        float multiplicadorParticulas = RhythmAPI.particleSpeedMultiplier;
+        float multiplicadorParticulas = RhythmAPI.getParticleSpeedMultiplier();
         // particle.setSpeed(baseSpeed * multiplicadorParticulas);
     }
 

@@ -21,7 +21,7 @@ public class OpenALAudioEngine {
 
     // ==== Configuración Activa y Sincronización ====
     private static volatile AudioEngineConfig config = null;
-    private static final Object engineLock = new Object(); // Lock para evitar crasheos al recargar en vivo
+    private static final Object engineLock = new Object();
 
     // ==== Variables dependientes de la configuración ====
     private static FloatFFT_1D fft;
@@ -43,6 +43,7 @@ public class OpenALAudioEngine {
     private static long device, context;
     private static int bufferId = 0, sourceId = 0;
     private static float totalDurationSeconds = 0f;
+    private static float currentVolume = 0.0f;
 
     // ==== Estado del Engine ====
     private static long lastHitComboTimeMs = 0;
@@ -62,14 +63,6 @@ public class OpenALAudioEngine {
         applyConfiguration(new AudioEngineConfig(), false);
     }
 
-    private static void initOpenAL() {
-        device = alcOpenDevice((ByteBuffer) null);
-        ALCCapabilities caps = ALC.createCapabilities(device);
-        try (MemoryStack stack = MemoryStack.stackPush()) { context = alcCreateContext(device, stack.ints(0)); }
-        alcMakeContextCurrent(context);
-        AL.createCapabilities(caps);
-    }
-
     public static void reloadConfiguration(AudioEngineConfig newConfig) {
         System.out.println("\u001B[36m[BeatEngine] Aplicando nueva configuración en vivo...\u001B[0m");
         applyConfiguration(newConfig, true);
@@ -82,6 +75,11 @@ public class OpenALAudioEngine {
                     (config.getFftSize() != newConfig.getFftSize()) ||
                     (config.getNumBars() != newConfig.getNumBars());
             config = newConfig;
+
+            setVolume(config.getCurrentVolume());
+            if (webVisualizer != null){
+                webVisualizer.sendVolumeUpdate(config.getCurrentVolume());
+            }
 
             if (rebuildArrays) {
                 int fftSize = config.getFftSize();
@@ -99,7 +97,6 @@ public class OpenALAudioEngine {
 
                 Arrays.fill(bandMaxes, 1.0f);
 
-                // Calcular límites logarítmicos
                 BOUNDARIES[0] = 1;
                 double maxBin = fftSize / 2.0;
                 double logMin = Math.log10(1);
@@ -112,17 +109,14 @@ public class OpenALAudioEngine {
                 }
                 if (BOUNDARIES[numBars] > fftSize / 2) BOUNDARIES[numBars] = fftSize / 2;
 
-                // Calcular dinámicamente qué barra es Bajo, Caja o Platillo basado en %
-                bassEndIndex = Math.max(1, (int)(numBars * 0.15f));  // 15% de barras
-                snareEndIndex = Math.max(bassEndIndex + 1, (int)(numBars * 0.50f)); // Hasta el 50%
+                bassEndIndex = Math.max(1, (int)(numBars * 0.15f));
+                snareEndIndex = Math.max(bassEndIndex + 1, (int)(numBars * 0.50f));
 
-                // Si estamos recargando y hay una canción sonando, debemos re-escanear
                 if (isReload && pcmData != null && engineRunning) {
                     preScanAudio();
                 }
             }
 
-            // Si la tasa de actualización cambió, reiniciamos el loop
             if (isReload && engineRunning) {
                 if (loopTask != null) loopTask.cancel(false);
                 startProcessingTask();
@@ -136,9 +130,16 @@ public class OpenALAudioEngine {
         engineRunning = true;
         exitLatch = new CountDownLatch(1);
         Runtime.getRuntime().addShutdownHook(new Thread(OpenALAudioEngine::shutdown));
-
-        executor = Executors.newSingleThreadScheduledExecutor();
+        executor = Executors.newScheduledThreadPool(2);
         startProcessingTask();
+    }
+
+    private static void initOpenAL() {
+        device = alcOpenDevice((ByteBuffer) null);
+        ALCCapabilities caps = ALC.createCapabilities(device);
+        try (MemoryStack stack = MemoryStack.stackPush()) { context = alcCreateContext(device, stack.ints(0)); }
+        alcMakeContextCurrent(context);
+        AL.createCapabilities(caps);
     }
 
     private static void startProcessingTask() {
@@ -155,8 +156,13 @@ public class OpenALAudioEngine {
         int state = alGetSourcei(sourceId, AL_SOURCE_STATE);
         float offset = alGetSourcef(sourceId, AL11.AL_SEC_OFFSET);
 
+        RhythmAPI.setCurrentPositionSeconds(offset);
+        RhythmAPI.setTotalDurationSeconds(totalDurationSeconds);
+
         if (state == AL_PLAYING) {
-            RhythmAPI.isPaused = false;
+            RhythmAPI.setPaused(false);
+            RhythmAPI.setPlaying(true);
+
             long currentTime = System.currentTimeMillis();
             int currentSampleIdx = (int) (offset * sampleRate) * numChannels;
 
@@ -168,68 +174,122 @@ public class OpenALAudioEngine {
                 float totalFrameEnergy = 0.0f;
 
                 for (int i = 0; i < numBars; i++) {
-                    if (currentFrame[i] > bandMaxes[i]) bandMaxes[i] = currentFrame[i];
-                    else bandMaxes[i] *= 0.992f;
+                    if (currentFrame[i] > bandMaxes[i]) {
+                        bandMaxes[i] = currentFrame[i];
+                    } else {
+                        bandMaxes[i] *= 0.992f;
+                    }
 
                     float rawValue = currentFrame[i] / Math.max(bandMaxes[i], 0.1f);
 
-                    long currentCooldown = (i < bassEndIndex) ? config.getBassCooldownMs() :
-                            ((i < snareEndIndex) ? config.getSnareCooldownMs() : config.getHatCooldownMs());
+                    long currentCooldown = (i < bassEndIndex)
+                            ? config.getBassCooldownMs()
+                            : (i < snareEndIndex)
+                              ? config.getSnareCooldownMs()
+                              : config.getHatCooldownMs();
 
                     boolean isHit = checkIsHit(i, rawValue, currentFrame);
 
                     if (isHit && (currentTime - lastEventTime[i] >= currentCooldown)) {
                         beatIntensity[i] = 1.0f;
                         lastEventTime[i] = currentTime;
-                        if (i < bassEndIndex) RhythmAPI.triggerBass();
-                        else if (i < snareEndIndex) RhythmAPI.triggerSnare();
+
+                        if (i < bassEndIndex) {
+                            RhythmAPI.triggerBass();
+                        } else if (i < snareEndIndex) {
+                            RhythmAPI.triggerSnare();
+                        } else {
+                            RhythmAPI.triggerHat();
+                        }
                     } else {
-                        beatIntensity[i] = Math.max(0, beatIntensity[i] - 0.08f);
+                        beatIntensity[i] = Math.max(0.0f, beatIntensity[i] - 0.08f);
                     }
 
                     previousFrame[i] = rawValue;
+
                     float speed = (rawValue > smoothedBars[i]) ? config.getAttack() : config.getDecay();
                     smoothedBars[i] += (rawValue - smoothedBars[i]) * speed;
                     totalFrameEnergy += smoothedBars[i];
                 }
 
-                // Asegurar que RhythmAPI.currentBars tenga el tamaño correcto si es que lo usas
-                if(RhythmAPI.currentBars == null || RhythmAPI.currentBars.length != numBars) {
-                    RhythmAPI.currentBars = new float[numBars];
+                float[] bars = RhythmAPI.getAllBars();
+                if (bars == null || bars.length != numBars) {
+                    bars = new float[numBars];
+                    RhythmAPI.setBars(bars);
                 }
-                System.arraycopy(smoothedBars, 0, RhythmAPI.currentBars, 0, numBars);
-                RhythmAPI.globalEnergy = totalFrameEnergy / numBars;
+                System.arraycopy(smoothedBars, 0, bars, 0, numBars);
 
-                // Intensidades dinámicas
-                float maxKickInt = 0, maxSnareInt = 0, maxHatInt = 0;
-                for (int k = 0; k < bassEndIndex; k++) maxKickInt = Math.max(maxKickInt, beatIntensity[k]);
-                for (int s = bassEndIndex; s < snareEndIndex; s++) maxSnareInt = Math.max(maxSnareInt, beatIntensity[s]);
-                for (int h = snareEndIndex; h < numBars; h++) maxHatInt = Math.max(maxHatInt, beatIntensity[h]);
+                float targetEnergy = totalFrameEnergy / Math.max(1, numBars);
+                RhythmAPI.updateGlobalEnergy(targetEnergy, 0.4f, 0.08f);
 
-                RhythmAPI.kickIntensity = maxKickInt;
-                RhythmAPI.snareIntensity = maxSnareInt;
-                RhythmAPI.hatIntensity = maxHatInt;
+                float maxKickInt = 0.0f;
+                float maxSnareInt = 0.0f;
+                float maxHatInt = 0.0f;
+
+                for (int k = 0; k < bassEndIndex; k++) {
+                    maxKickInt = Math.max(maxKickInt, beatIntensity[k]);
+                }
+                for (int s = bassEndIndex; s < snareEndIndex; s++) {
+                    maxSnareInt = Math.max(maxSnareInt, beatIntensity[s]);
+                }
+                for (int h = snareEndIndex; h < numBars; h++) {
+                    maxHatInt = Math.max(maxHatInt, beatIntensity[h]);
+                }
+
+                RhythmAPI.setKickIntensity(maxKickInt);
+                RhythmAPI.setSnareIntensity(maxSnareInt);
+                RhythmAPI.setHatIntensity(maxHatInt);
 
                 if (maxHatInt > 0.85f && (currentTime - lastEventTime[snareEndIndex] >= config.getHatCooldownMs())) {
                     RhythmAPI.triggerHat();
                     lastEventTime[snareEndIndex] = currentTime;
                 }
 
-                float maxHit = Math.max(maxKickInt, Math.max(maxSnareInt, maxHatInt));
-                RhythmAPI.particleSpeedMultiplier = 1.0f + (RhythmAPI.globalEnergy * 0.5f) + (maxHit * 3.5f);
+                float kickCap = 0.85f;
+                float kickNormalized = Math.min(maxKickInt / kickCap, 1.0f);
+                float kickResponse = kickNormalized * kickNormalized;
+                RhythmAPI.setParticleSpeedMultiplier(1.0f + (kickResponse * 2.5f));
 
-                if (beatIntensity[1] == 1.0f || beatIntensity[bassEndIndex + 1] == 1.0f) {
-                    RhythmAPI.hitCombo++;
+                boolean comboHit =
+                        (beatIntensity.length > 1 && beatIntensity[1] == 1.0f) ||
+                                (bassEndIndex + 1 < beatIntensity.length && beatIntensity[bassEndIndex + 1] == 1.0f);
+
+                if (comboHit) {
+                    RhythmAPI.incrementHitCombo();
                     lastHitComboTimeMs = currentTime;
                 } else if (currentTime - lastHitComboTimeMs > 1500) {
-                    RhythmAPI.hitCombo = 0;
+                    RhythmAPI.resetHitCombo();
                 }
-                RhythmAPI.gameTimeOfDay = (RhythmAPI.gameTimeOfDay + 0.0005f + (RhythmAPI.globalEnergy * 0.02f)) % 24.0f;
             }
-            if (webVisualizer != null) webVisualizer.update(smoothedBars, beatIntensity, RhythmAPI.globalEnergy, RhythmAPI.hitCombo, RhythmAPI.particleSpeedMultiplier, false, offset, totalDurationSeconds);
+
+            if (webVisualizer != null) {
+                webVisualizer.update(
+                        smoothedBars,
+                        beatIntensity,
+                        RhythmAPI.getGlobalEnergy(),
+                        RhythmAPI.getHitCombo(),
+                        RhythmAPI.getParticleSpeedMultiplier(),
+                        false,
+                        offset,
+                        totalDurationSeconds
+                );
+            }
         } else {
-            RhythmAPI.isPaused = (state == AL_PAUSED);
-            if (webVisualizer != null) webVisualizer.update(smoothedBars, beatIntensity, RhythmAPI.globalEnergy, RhythmAPI.hitCombo, RhythmAPI.particleSpeedMultiplier, true, offset, totalDurationSeconds);
+            RhythmAPI.setPaused(state == AL_PAUSED);
+            RhythmAPI.setPlaying(false);
+
+            if (webVisualizer != null) {
+                webVisualizer.update(
+                        smoothedBars,
+                        beatIntensity,
+                        RhythmAPI.getGlobalEnergy(),
+                        RhythmAPI.getHitCombo(),
+                        RhythmAPI.getParticleSpeedMultiplier(),
+                        true,
+                        offset,
+                        totalDurationSeconds
+                );
+            }
         }
     }
 
@@ -311,25 +371,32 @@ public class OpenALAudioEngine {
         System.out.println("\u001B[32m[BeatEngine] Escaneo completado en " + (System.currentTimeMillis() - start) + "ms.\u001B[0m");
     }
 
-    public static void playNewSong(String path, Runnable onPlaybackStart) {
-        synchronized (engineLock) {
-            if (!engineRunning) return;
-            if (sourceId != 0) {
-                alSourceStop(sourceId);
-                alDeleteSources(sourceId);
-                alDeleteBuffers(bufferId);
+    public static void playNewSong(String path, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
+        executor.schedule(() -> {
+            synchronized (engineLock) {
+                if (!engineRunning) return;
+
+                if (sourceId != 0) {
+                    alSourceStop(sourceId);
+                    alDeleteSources(sourceId);
+                    alDeleteBuffers(bufferId);
+                }
+
+                Arrays.fill(smoothedBars, 0);
+                Arrays.fill(beatIntensity, 0);
+                Arrays.fill(previousFrame, 0);
+                Arrays.fill(bandMaxes, 1.0f);
+
+                loadAndAnalyzeAudio(path);
+
+                alSourcei(sourceId, AL_LOOPING, isLooping ? AL_TRUE : AL_FALSE);
+                alSourcePlay(sourceId);
+
+                if (onPlaybackStart != null) {
+                    onPlaybackStart.run();
+                }
             }
-            Arrays.fill(smoothedBars, 0);
-            Arrays.fill(beatIntensity, 0);
-            Arrays.fill(previousFrame, 0);
-            Arrays.fill(bandMaxes, 1.0f);
-
-            loadAndAnalyzeAudio(path);
-
-            alSourcei(sourceId, AL_LOOPING, isLooping ? AL_TRUE : AL_FALSE);
-            alSourcePlay(sourceId);
-            if (onPlaybackStart != null) onPlaybackStart.run();
-        }
+        }, delayTime, timeUnit);
     }
 
     private static void loadAndAnalyzeAudio(String path) {
@@ -356,24 +423,45 @@ public class OpenALAudioEngine {
             alBufferData(bufferId, (numChannels == 1) ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16, pcmData, sampleRate);
             sourceId = alGenSources();
             alSourcei(sourceId, AL_BUFFER, bufferId);
-
+            alSourcef(sourceId, AL_GAIN, currentVolume);
             preScanAudio();
         }
     }
 
-    // ========== METODOS DE CONTROL (PAUSE, STOP, ETC) MANTENIDOS IGUAL ==========
     public static void setLooping(boolean loop) {
         isLooping = loop;
         if (sourceId != 0) alSourcei(sourceId, AL_LOOPING, loop ? AL_TRUE : AL_FALSE);
     }
-    public static void pauseSong() { if (sourceId != 0) alSourcePause(sourceId); }
-    public static void resumeSong() { if (sourceId != 0) alSourcePlay(sourceId); }
-    public static void stopSong() { if (sourceId != 0) alSourceStop(sourceId); }
-    public static void setVolume(float volume) { if (sourceId != 0) alSourcef(sourceId, AL_GAIN, Math.max(0.0f, volume)); }
+    public static void pauseSong() {
+        if (sourceId != 0) alSourcePause(sourceId);
+    }
+
+    public static void resumeSong() {
+        if (sourceId != 0)
+            alSourcePlay(sourceId);
+    }
+
+    public static void stopSong() {
+        if (sourceId != 0)
+            alSourceStop(sourceId);
+    }
+
+    public static void setVolume(float volume) {
+        currentVolume = Math.max(0.0f, volume);
+        if (sourceId != 0) {
+            alSourcef(sourceId, AL_GAIN, currentVolume);
+            RhythmAPI.setVolume(volume);
+        }
+    }
 
     public static void waitForExit() {
-        try { if (exitLatch != null) exitLatch.await(); }
-        catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        try {
+            if (exitLatch != null)
+                exitLatch.await();
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     public static void shutdown() {

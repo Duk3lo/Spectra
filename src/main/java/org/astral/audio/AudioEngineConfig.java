@@ -1,5 +1,14 @@
 package org.astral.audio;
+
+import java.util.concurrent.TimeUnit;
+
 public final class AudioEngineConfig {
+    // Volumen
+    private float currentVolume = 0.5f;
+
+    // Configuración para el evento retrasado
+    private long delayedTaskTimePlaySong = 0L;
+    private TimeUnit delayedTaskTimeUnitPlaySong = TimeUnit.SECONDS;
 
     // Tamaños y Barras
     private int fftSize = 2048; // Debe ser potencia de 2 (1024, 2048, 4096)
@@ -23,10 +32,10 @@ public final class AudioEngineConfig {
     private int updateRateMs = 16; // ~60 FPS
 
     public AudioEngineConfig() {
-        // Valores por defecto
     }
 
     // ================= GETTERS =================
+    public float getCurrentVolume() {return currentVolume; }
     public int getFftSize() { return fftSize; }
     public int getNumBars() { return numBars; }
     public float getAttack() { return attack; }
@@ -38,9 +47,11 @@ public final class AudioEngineConfig {
     public long getSnareCooldownMs() { return snareCooldownMs; }
     public long getHatCooldownMs() { return hatCooldownMs; }
     public int getUpdateRateMs() { return updateRateMs; }
+    public long getDelayedTaskTimePlaySong() { return delayedTaskTimePlaySong; }
+    public TimeUnit getDelayedTaskTimeUnitPlaySong() { return delayedTaskTimeUnitPlaySong; }
 
     // ================= SETTERS =================
-    // (Tu sistema de CODEC los usará para asignar los valores)
+    public void setCurrentVolume(float currentVolume){ this.currentVolume = currentVolume; }
     public void setFftSize(int fftSize) { this.fftSize = fftSize; }
     public void setNumBars(int numBars) { this.numBars = numBars; }
     public void setAttack(float attack) { this.attack = attack; }
@@ -52,4 +63,6 @@ public final class AudioEngineConfig {
     public void setSnareCooldownMs(long snareCooldownMs) { this.snareCooldownMs = snareCooldownMs; }
     public void setHatCooldownMs(long hatCooldownMs) { this.hatCooldownMs = hatCooldownMs; }
     public void setUpdateRateMs(int updateRateMs) { this.updateRateMs = updateRateMs; }
+    public void setDelayedTaskTimePlaySong(long delayedTaskTimePlaySong) { this.delayedTaskTimePlaySong = delayedTaskTimePlaySong; }
+    public void setDelayedTaskTimeUnitPlaySong(TimeUnit delayedTaskTimeUnitPlaySong) { this.delayedTaskTimeUnitPlaySong = delayedTaskTimeUnitPlaySong; }
 }

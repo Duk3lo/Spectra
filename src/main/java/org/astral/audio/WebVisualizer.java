@@ -11,16 +11,13 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public class WebVisualizer {
 
-    // ==========================================================
-    // UBICACIÓN DE LOS ARCHIVOS WEB (Resources)
-    // Cambia "/web" por el nombre de la carpeta que uses.
-    // ==========================================================
     private static final String webFolder = "/web";
 
     private HttpServer server;
@@ -28,7 +25,8 @@ public class WebVisualizer {
 
     private final String engineName;
     private final int startPort;
-    private final VolumeCallback volumeCallback;
+
+    private VolumeCallback volumeCallback;
 
     private final CountDownLatch clientConnectedLatch = new CountDownLatch(1);
 
@@ -36,10 +34,13 @@ public class WebVisualizer {
         void onVolumeChange(float level);
     }
 
-    public WebVisualizer(String engineName, int startPort, VolumeCallback volumeCallback) {
+    public WebVisualizer(String engineName, int startPort) {
         this.engineName = engineName;
         this.startPort = startPort;
-        this.volumeCallback = volumeCallback;
+    }
+
+    public void setVolumeCallback(VolumeCallback callback) {
+        this.volumeCallback = callback;
     }
 
     public void start() {
@@ -103,6 +104,16 @@ public class WebVisualizer {
             server.stop(0);
             server = null;
         }
+    }
+
+    public void sendVolumeUpdate(float volume) {
+        if (clients.isEmpty() || server == null) return;
+        String msg = "data: {\"type\":\"volume_change\", \"value\":" + String.format(Locale.US, "%.2f", volume) + "}\n\n";
+        byte[] bytes = msg.getBytes();
+        clients.removeIf(os -> {
+            try { os.write(bytes); os.flush(); return false; }
+            catch (IOException e) { return true; }
+        });
     }
 
     public void update(float[] bars, float[] beatIntensity, float energy, int combo, float speed, boolean isPaused, float currentSecs, float totalSecs) {
@@ -193,7 +204,11 @@ public class WebVisualizer {
         public void handle(@NotNull HttpExchange exchange) throws IOException {
             String q = exchange.getRequestURI().getQuery();
             if (q != null && q.startsWith("level=")) {
-                try { volumeCallback.onVolumeChange(Float.parseFloat(q.split("=")[1])); }
+                try {
+                    if (volumeCallback != null) {
+                        volumeCallback.onVolumeChange(Float.parseFloat(q.split("=")[1]));
+                    }
+                }
                 catch (Exception ignored) {}
             }
             exchange.sendResponseHeaders(200, -1);
@@ -208,7 +223,8 @@ public class WebVisualizer {
             exchange.getResponseHeaders().add("Cache-Control", "no-cache");
             exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
             exchange.sendResponseHeaders(200, 0);
-            clients.add(exchange.getResponseBody());
+            OutputStream os = exchange.getResponseBody();
+            clients.add(os);
             clientConnectedLatch.countDown();
         }
     }
