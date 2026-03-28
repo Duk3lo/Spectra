@@ -33,8 +33,8 @@ dependencies {
 
     // 2. Las librerías de código (Interfaces de Java)
 
-    implementation("org.lwjgl:lwjgl")        // Núcleo
-    implementation("org.lwjgl:lwjgl-openal") // Audio
+    implementation("org.lwjgl:lwjgl")
+    implementation("org.lwjgl:lwjgl-openal")
     implementation("org.lwjgl:lwjgl-stb")
 
     runtimeOnly("org.lwjgl:lwjgl::$lwjglNatives")

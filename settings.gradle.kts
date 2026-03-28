@@ -1,1 +1,1 @@
-rootProject.name = "PracticeOpenAL"
+rootProject.name = "Spectyle"
