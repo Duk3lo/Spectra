@@ -31,7 +31,7 @@ public class BeatDetector {
     public BeatDetector(@NotNull AudioConfig config) {
         this.config = config;
 
-        int numBars = config.getNumBars();
+        int numBars = config.getVisualizer().getNumBars();
 
         smoothedBars = new float[numBars];
         bandMaxes = new float[numBars];
@@ -51,8 +51,8 @@ public class BeatDetector {
         System.out.println("\u001B[33m[BeatEngine] Pre-escaneando canción (Análisis Multi-Banda)...\u001B[0m");
         long start = System.currentTimeMillis();
 
-        int numBars = config.getNumBars();
-        int fftSize = config.getFftSize();
+        int numBars = config.getVisualizer().getNumBars();
+        int fftSize = config.getVisualizer().getFftSize();
         int numChannels = buffer.channels();
 
         Arrays.fill(globalBandMax, 0f);
@@ -78,7 +78,7 @@ public class BeatDetector {
     }
 
     public void processFrame(float[] currentFrame, long currentTime) {
-        int numBars = config.getNumBars();
+        int numBars = config.getVisualizer().getNumBars();
         float totalFrameEnergy = 0.0f;
 
         float maxKickInt = 0f;
@@ -101,9 +101,9 @@ public class BeatDetector {
             }
 
             float rawValue = currentFrame[i] / Math.max(bandMaxes[i], 0.1f);
-            long currentCooldown = (i < bassEndIndex) ? config.getBassCooldownMs()
-                    : (i < snareEndIndex) ? config.getSnareCooldownMs()
-                      : config.getHatCooldownMs();
+            long currentCooldown = (i < bassEndIndex) ? config.getBeatDetection().getBassCooldownMs()
+                    : (i < snareEndIndex) ? config.getBeatDetection().getSnareCooldownMs()
+                      : config.getBeatDetection().getHatCooldownMs();
 
             boolean isHit = checkIsHit(i, rawValue, currentFrame);
 
@@ -120,7 +120,7 @@ public class BeatDetector {
 
             previousFrame[i] = rawValue;
 
-            float speed = (rawValue > smoothedBars[i]) ? config.getAttack() : config.getDecay();
+            float speed = (rawValue > smoothedBars[i]) ? config.getSmoothing().getAttack() : config.getSmoothing().getDecay();
             smoothedBars[i] += (rawValue - smoothedBars[i]) * speed;
             totalFrameEnergy += smoothedBars[i];
 
@@ -147,7 +147,7 @@ public class BeatDetector {
         AudioAPI.setSnareIntensity(maxSnareInt);
         AudioAPI.setHatIntensity(maxHatInt);
 
-        if (maxHatInt > 0.85f && (currentTime - lastEventTime[Math.max(0, snareEndIndex - 1)] >= config.getHatCooldownMs())) {
+        if (maxHatInt > 0.85f && (currentTime - lastEventTime[Math.max(0, snareEndIndex - 1)] >= config.getBeatDetection().getHatCooldownMs())) {
             AudioAPI.triggerHat();
             lastEventTime[Math.max(0, snareEndIndex - 1)] = currentTime;
         }
@@ -242,8 +242,8 @@ public class BeatDetector {
     }
 
     private boolean checkIsHit(int i, float rawValue, float[] currentFrame) {
-        float jumpRequired = (i < bassEndIndex) ? config.getBassJumpThreshold()
-                : ((i < snareEndIndex) ? config.getSnareJumpThreshold() : config.getHatJumpThreshold());
+        float jumpRequired = (i < bassEndIndex) ? config.getBeatDetection().getBassJumpThreshold()
+                : ((i < snareEndIndex) ? config.getBeatDetection().getSnareJumpThreshold() : config.getBeatDetection().getHatJumpThreshold());
 
         float minThreshold = (i < bassEndIndex) ? 0.50f : 0.25f;
         float absoluteFloor = globalBandMax[i] * ((i < bassEndIndex) ? 0.30f : 0.20f);

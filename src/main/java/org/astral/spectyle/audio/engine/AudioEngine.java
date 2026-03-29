@@ -63,7 +63,7 @@ public class AudioEngine {
             engineRunning = true;
 
             if (webVisualizer != null) {
-                webVisualizer.sendVolumeUpdate(config.getCurrentVolume());
+                webVisualizer.sendVolumeUpdate(config.getGeneral().getCurrentVolume());
             }
 
             startProcessingTask();
@@ -80,7 +80,7 @@ public class AudioEngine {
         loopTask = executor.scheduleAtFixedRate(
                 this::processAudioFrame,
                 0,
-                config.getUpdateRateMs(),
+                config.getGeneral().getUpdateRateMs(),
                 TimeUnit.MILLISECONDS
         );
     }
@@ -92,17 +92,17 @@ public class AudioEngine {
 
         synchronized (engineLock) {
             boolean rebuildAnalysis =
-                    (config.getFftSize() != newConfig.getFftSize()) ||
-                            (config.getNumBars() != newConfig.getNumBars());
+                    (config.getVisualizer().getFftSize() != newConfig.getVisualizer().getFftSize()) ||
+                            (config.getVisualizer().getNumBars() != newConfig.getVisualizer().getNumBars());
 
-            boolean restartLoop = (config.getUpdateRateMs() != newConfig.getUpdateRateMs());
+            boolean restartLoop = (config.getGeneral().getUpdateRateMs() != newConfig.getGeneral().getUpdateRateMs());
 
             this.config = newConfig;
 
-            setVolume(config.getCurrentVolume());
+            setVolume(config.getGeneral().getCurrentVolume());
 
             if (webVisualizer != null) {
-                webVisualizer.sendVolumeUpdate(config.getCurrentVolume());
+                webVisualizer.sendVolumeUpdate(config.getGeneral().getCurrentVolume());
             }
 
             if (rebuildAnalysis) {
@@ -138,7 +138,7 @@ public class AudioEngine {
                 player.cleanup();
 
                 currentBuffer = OggDecoder.loadAudio(path);
-                player.load(currentBuffer, config.getCurrentVolume());
+                player.load(currentBuffer, config.getGeneral().getCurrentVolume());
 
                 beatDetector = new BeatDetector(config);
                 beatDetector.preScan(currentBuffer, analyzer);
@@ -171,7 +171,7 @@ public class AudioEngine {
                 AudioAPI.setPlaying(true);
 
                 int currentSampleIdx = (int) (offset * currentBuffer.sampleRate()) * currentBuffer.channels();
-                int fftSize = config.getFftSize();
+                int fftSize = config.getVisualizer().getFftSize();
 
                 if (currentSampleIdx >= 0 &&
                         currentSampleIdx + (fftSize * currentBuffer.channels()) < currentBuffer.pcmData().capacity()) {
@@ -219,7 +219,6 @@ public class AudioEngine {
 
     public void setVolume(float volume) {
         synchronized (engineLock) {
-            config.setCurrentVolume(volume);
             player.setVolume(volume);
             AudioAPI.setVolume(volume);
         }

@@ -1,0 +1,21 @@
+{
+  "Group": "Astral",
+  "Name": "Spectyle",
+  "Version": "0.0.1",
+  "Main": "org.astral.spectyle.Main",
+  "ServerVersion": "2026.02.19-1a311a592",
+  "Authors": [
+    {
+      "Name": "Duk3lo",
+      "Email": "",
+      "Url": ""
+    }
+  ],
+  "Website": "",
+  "Dependencies": {},
+  "OptionalDependencies": {},
+  "LoadBefore": {},
+  "DisabledByDefault": false,
+  "IncludesAssetPack": true,
+  "SubPlugins": []
+}

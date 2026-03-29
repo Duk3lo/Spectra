@@ -12,8 +12,8 @@ public class SpectrumAnalyzer {
 
     public SpectrumAnalyzer(@NotNull AudioConfig config) {
         this.config = config;
-        this.fft = new FloatFFT_1D(config.getFftSize());
-        this.boundaries = computeBoundaries(config.getFftSize(), config.getNumBars());
+        this.fft = new FloatFFT_1D(config.getVisualizer().getFftSize());
+        this.boundaries = computeBoundaries(config.getVisualizer().getFftSize(), config.getVisualizer().getNumBars());
     }
 
     private int @NotNull [] computeBoundaries(int fftSize, int numBars) {
@@ -33,7 +33,7 @@ public class SpectrumAnalyzer {
     }
 
     public float[] extractSamples(@NotNull AudioBuffer buffer, int startIdx) {
-        int fftSize = config.getFftSize();
+        int fftSize = config.getVisualizer().getFftSize();
         int channels = buffer.channels();
         float[] samples = new float[fftSize];
 
@@ -48,8 +48,8 @@ public class SpectrumAnalyzer {
     }
 
     public float[] computeFFT(float[] windowedSamples) {
-        int fftSize = config.getFftSize();
-        int numBars = config.getNumBars();
+        int fftSize = config.getVisualizer().getFftSize();
+        int numBars = config.getVisualizer().getNumBars();
 
         fft.realForward(windowedSamples);
         float[] magnitudes = new float[fftSize / 2];

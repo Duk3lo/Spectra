@@ -1,65 +1,91 @@
 package org.astral.spectyle.config;
 
-import java.util.concurrent.TimeUnit;
 
-public class AudioConfig {
-    private float currentVolume = 0.0f;
+public final class AudioConfig {
+    private General general = new General();
+    private Visualizer visualizer = new Visualizer();
+    private Smoothing smoothing = new Smoothing();
+    private BeatDetection beatDetection = new BeatDetection();
 
-    // Configuración para el evento retrasado
-    private long delayedTaskTimePlaySong = 0L;
-    private TimeUnit delayedTaskTimeUnitPlaySong = TimeUnit.SECONDS;
+    public General getGeneral() { return general; }
+    public Visualizer getVisualizer() { return visualizer; }
+    public Smoothing getSmoothing() { return smoothing; }
+    public BeatDetection getBeatDetection() { return beatDetection; }
 
-    // Tamaños y Barras
-    private int fftSize = 2048; // Debe ser potencia de 2 (1024, 2048, 4096)
-    private int numBars = 32;   // Cantidad de barras en el visualizador
+    public void setGeneral(General general) { this.general = general; }
+    public void setVisualizer(Visualizer visualizer) { this.visualizer = visualizer; }
+    public void setSmoothing(Smoothing smoothing) { this.smoothing = smoothing; }
+    public void setBeatDetection(BeatDetection beatDetection) { this.beatDetection = beatDetection; }
 
-    // Suavizado (Smoothing)
-    private float attack = 0.75f;
-    private float decay = 0.20f;
+    public static class General {
+        private float currentVolume = 0.5f;
+        private int updateRateMs = 16;
+        private String delayedTask = "0s";
 
-    // Multiplicadores de umbral para detección de ritmos (Beat Detection)
-    private float bassJumpThreshold = 1.50f;
-    private float snareJumpThreshold = 1.35f;
-    private float hatJumpThreshold = 1.25f;
+        public float getCurrentVolume() { return currentVolume; }
+        public void setCurrentVolume(float currentVolume) { this.currentVolume = currentVolume; }
 
-    // Cooldowns de eventos en milisegundos (para evitar spam de partículas)
-    private long bassCooldownMs = 250;
-    private long snareCooldownMs = 150;
-    private long hatCooldownMs = 100;
+        public int getUpdateRateMs() { return updateRateMs; }
+        public void setUpdateRateMs(int updateRateMs) { this.updateRateMs = updateRateMs; }
 
-    // Tasa de actualización del executor (ms)
-    private int updateRateMs = 16; // ~60 FPS
+        public String getDelayedTask() { return delayedTask; }
+        public void setDelayedTask(String delayedTask) { this.delayedTask = delayedTask; }
 
-    // ================= GETTERS =================
-    public float getCurrentVolume() {return currentVolume; }
-    public int getFftSize() { return fftSize; }
-    public int getNumBars() { return numBars; }
-    public float getAttack() { return attack; }
-    public float getDecay() { return decay; }
-    public float getBassJumpThreshold() { return bassJumpThreshold; }
-    public float getSnareJumpThreshold() { return snareJumpThreshold; }
-    public float getHatJumpThreshold() { return hatJumpThreshold; }
-    public long getBassCooldownMs() { return bassCooldownMs; }
-    public long getSnareCooldownMs() { return snareCooldownMs; }
-    public long getHatCooldownMs() { return hatCooldownMs; }
-    public int getUpdateRateMs() { return updateRateMs; }
-    public long getDelayedTaskTimePlaySong() { return delayedTaskTimePlaySong; }
-    public TimeUnit getDelayedTaskTimeUnitPlaySong() { return delayedTaskTimeUnitPlaySong; }
+        public long getDelayedTaskInMs() {
+            if (delayedTask == null || delayedTask.isEmpty()) return 0;
+            try {
+                String unit = delayedTask.substring(delayedTask.length() - 1).toLowerCase();
+                long value = Long.parseLong(delayedTask.substring(0, delayedTask.length() - 1));
+                return switch (unit) {
+                    case "s" -> value * 1000;
+                    case "m" -> value * 60 * 1000;
+                    case "h" -> value * 60 * 60 * 1000;
+                    case "d" -> value * 24 * 60 * 60 * 1000;
+                    default -> Long.parseLong(delayedTask);
+                };
+            } catch (NumberFormatException e) {
+                return 0;
+            }
+        }
+    }
 
-    // ================= SETTERS =================
-    public void setCurrentVolume(float currentVolume){ this.currentVolume = currentVolume; }
-    public void setFftSize(int fftSize) { this.fftSize = fftSize; }
-    public void setNumBars(int numBars) { this.numBars = numBars; }
-    public void setAttack(float attack) { this.attack = attack; }
-    public void setDecay(float decay) { this.decay = decay; }
-    public void setBassJumpThreshold(float bassJumpThreshold) { this.bassJumpThreshold = bassJumpThreshold; }
-    public void setSnareJumpThreshold(float snareJumpThreshold) { this.snareJumpThreshold = snareJumpThreshold; }
-    public void setHatJumpThreshold(float hatJumpThreshold) { this.hatJumpThreshold = hatJumpThreshold; }
-    public void setBassCooldownMs(long bassCooldownMs) { this.bassCooldownMs = bassCooldownMs; }
-    public void setSnareCooldownMs(long snareCooldownMs) { this.snareCooldownMs = snareCooldownMs; }
-    public void setHatCooldownMs(long hatCooldownMs) { this.hatCooldownMs = hatCooldownMs; }
-    public void setUpdateRateMs(int updateRateMs) { this.updateRateMs = updateRateMs; }
-    public void setDelayedTaskTimePlaySong(long delayedTaskTimePlaySong) { this.delayedTaskTimePlaySong = delayedTaskTimePlaySong; }
-    public void setDelayedTaskTimeUnitPlaySong(TimeUnit delayedTaskTimeUnitPlaySong) { this.delayedTaskTimeUnitPlaySong = delayedTaskTimeUnitPlaySong; }
+    public static class Visualizer {
+        private int fftSize = 2048;
+        private int numBars = 32; // Mejorado a 64 para separar sub-bajos
+        public int getFftSize() { return fftSize; }
+        public void setFftSize(int fftSize) { this.fftSize = fftSize; }
+        public int getNumBars() { return numBars; }
+        public void setNumBars(int numBars) { this.numBars = numBars; }
+    }
 
+    public static class Smoothing {
+        private float attack = 0.85f; // Más rápido para visuales eléctricos
+        private float decay = 0.18f;
+        public float getAttack() { return attack; }
+        public void setAttack(float attack) { this.attack = attack; }
+        public float getDecay() { return decay; }
+        public void setDecay(float decay) { this.decay = decay; }
+    }
+
+    public static class BeatDetection {
+        private float bassJumpThreshold = 1.35f;
+        private float snareJumpThreshold = 1.25f;
+        private float hatJumpThreshold = 1.15f;
+        private long bassCooldownMs = 110; // Reducido para Breakcore
+        private long snareCooldownMs = 80;
+        private long hatCooldownMs = 50;
+
+        public float getBassJumpThreshold() { return bassJumpThreshold; }
+        public void setBassJumpThreshold(float v) { this.bassJumpThreshold = v; }
+        public float getSnareJumpThreshold() { return snareJumpThreshold; }
+        public void setSnareJumpThreshold(float v) { this.snareJumpThreshold = v; }
+        public float getHatJumpThreshold() { return hatJumpThreshold; }
+        public void setHatJumpThreshold(float v) { this.hatJumpThreshold = v; }
+        public long getBassCooldownMs() { return bassCooldownMs; }
+        public void setBassCooldownMs(long v) { this.bassCooldownMs = v; }
+        public long getSnareCooldownMs() { return snareCooldownMs; }
+        public void setSnareCooldownMs(long v) { this.snareCooldownMs = v; }
+        public long getHatCooldownMs() { return hatCooldownMs; }
+        public void setHatCooldownMs(long v) { this.hatCooldownMs = v; }
+    }
 }
