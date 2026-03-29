@@ -2,42 +2,65 @@ package org.astral.spectyle;
 
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
-import org.astral.spectyle.config.AudioConfig;
+import com.hypixel.hytale.server.core.util.Config;
 import org.astral.spectyle.audio.engine.AudioEngine;
+import org.astral.spectyle.config.AudioConfig;
+import org.astral.spectyle.hytale.AudioConfigAdapter;
 import org.astral.spectyle.web.WebVisualizer;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.TimeUnit;
 
-public class Main{
+public class Main extends JavaPlugin {
 
-    private static final String finalAudio = "src/main/resources/musics/miss.ogg";
+    private static Main instance;
+    private static final String FINAL_AUDIO = "src/main/resources/musics/miss.ogg";
     private static final WebVisualizer webVisualizer = new WebVisualizer("OpenAL (AudioSpectrum)", 8080);
 
+    private final Config<AudioConfig> audioConfigFile;
+    private AudioConfig config;
+    private final AudioEngine engine;
 
+    public Main(@NotNull JavaPluginInit init) {
+        super(init);
+        this.audioConfigFile = this.withConfig("AudioConfig", AudioConfigAdapter.CODEC);
+        this.config = this.audioConfigFile.load().join();
+        this.engine = new AudioEngine(this.config);
+    }
 
-
-    public static void main(String[] args) {
-        AudioConfig config = new AudioConfig();
-        AudioEngine engine = new AudioEngine(config);
-
-        System.out.println("\u001B[35m[Main] Iniciando Motor de Audio: Nuevo sistema modular\u001B[0m");
-
+    @Override
+    protected void setup() {
+        instance = this;
         engine.setWebVisualizer(webVisualizer);
-
         webVisualizer.setVolumeCallback(engine::setVolume);
         webVisualizer.start();
         webVisualizer.waitForConnection();
 
         engine.start();
 
-        engine.playSong(finalAudio, () -> {
-            System.out.println("\u001B[32m[Main] OpenAL ha comenzado la reproducción nativa con éxito.\u001B[0m");
-            System.out.println("Accion para otra cosa");
-        }, config.getGeneral().getDelayedTaskInMs(), TimeUnit.MILLISECONDS);
-
-        engine.waitForExit();
+        engine.playSong(
+                FINAL_AUDIO,
+                () -> {
+                    getLogger().atInfo().log("OpenAL ha comenzado la reproducción nativa con éxito.");
+                },
+                config.getGeneral().getDelayedTaskInMs(),
+                TimeUnit.MILLISECONDS
+        );
     }
 
+    @Override
+    protected void shutdown() {
+        engine.shutdown();
+    }
 
+    public void reloadConfig() {
+        AudioConfig newConfig = audioConfigFile.load().join();
+        this.config = newConfig;
+        engine.reloadConfiguration(newConfig);
+        getLogger().atInfo().log("Configuración recargada");
+    }
+
+    public static Main getInstance(){
+        return instance;
+    }
 }
