@@ -1,14 +1,14 @@
-package org.astral.spectyle.detection;
+package org.astral.spectyle.audio.detection;
 
-import org.astral.spectyle.analysis.SpectrumAnalyzer;
-import org.astral.spectyle.api.AudioAPI;
+import org.astral.spectyle.audio.analysis.SpectrumAnalyzer;
+import org.astral.spectyle.audio.api.AudioAPI;
+import org.astral.spectyle.audio.api.ReactiveSnapshot;
 import org.astral.spectyle.config.AudioConfig;
-import org.astral.spectyle.state.AudioBuffer;
+import org.astral.spectyle.audio.state.AudioBuffer;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
 
 public class BeatDetector {
@@ -193,67 +193,52 @@ public class BeatDetector {
                                       int highCount) {
         reactiveSignals.clear();
 
-        reactiveSignals.put("kick", maxKickInt);
-        reactiveSignals.put("snare", maxSnareInt);
-        reactiveSignals.put("hat", maxHatInt);
+        float bassAvg = bassCount == 0 ? 0f : bassEnergy / bassCount;
+        float midAvg = midCount == 0 ? 0f : midEnergy / midCount;
+        float highAvg = highCount == 0 ? 0f : highEnergy / highCount;
+
+        float vocalPresence = detectVocalPresence(midAvg, highAvg, maxHatInt);
+        float transientLevel = clamp01((maxKickInt + maxSnareInt + maxHatInt) / 3.0f);
+        float brightness = clamp01((highAvg * 0.75f) + (maxHatInt * 0.25f));
+        float subBass = clamp01(bassAvg * 1.15f);
+
+        reactiveSignals.put("kick", clamp01(maxKickInt));
+        reactiveSignals.put("snare", clamp01(maxSnareInt));
+        reactiveSignals.put("hat", clamp01(maxHatInt));
         reactiveSignals.put("energy", clamp01(targetEnergy));
-        reactiveSignals.put("bassEnergy", clamp01(bassCount == 0 ? 0f : bassEnergy / bassCount));
-        reactiveSignals.put("midEnergy", clamp01(midCount == 0 ? 0f : midEnergy / midCount));
-        reactiveSignals.put("highEnergy", clamp01(highCount == 0 ? 0f : highEnergy / highCount));
+        reactiveSignals.put("bassEnergy", clamp01(bassAvg));
+        reactiveSignals.put("midEnergy", clamp01(midAvg));
+        reactiveSignals.put("highEnergy", clamp01(highAvg));
+        reactiveSignals.put("vocalPresence", clamp01(vocalPresence));
+        reactiveSignals.put("transientLevel", transientLevel);
+        reactiveSignals.put("brightness", brightness);
+        reactiveSignals.put("subBass", subBass);
         reactiveSignals.put("combo", Math.min(AudioAPI.getHitCombo() / 20.0f, 1.0f));
 
-        addDynamicBands();
-        addTopPeaks();
+        AudioAPI.setReactiveSnapshot(new ReactiveSnapshot(
+                clamp01(maxKickInt),
+                clamp01(maxSnareInt),
+                clamp01(maxHatInt),
+                clamp01(targetEnergy),
+                clamp01(bassAvg),
+                clamp01(midAvg),
+                clamp01(highAvg),
+                clamp01(vocalPresence),
+                Math.min(AudioAPI.getHitCombo() / 20.0f, 1.0f),
+                transientLevel,
+                brightness,
+                subBass
+        ));
     }
 
-    private void addDynamicBands() {
-        int numBars = smoothedBars.length;
-        int bands = Math.clamp(8, 4, numBars);
+    private float detectVocalPresence(float midAvg, float highAvg, float hatPeak) {
+        float vocal = (midAvg * 0.75f) + (highAvg * 0.45f);
 
-        for (int b = 0; b < bands; b++) {
-            int start = (b * numBars) / bands;
-            int end = ((b + 1) * numBars) / bands;
-
-            float sum = 0f;
-            for (int i = start; i < end; i++) {
-                sum += smoothedBars[i];
-            }
-
-            float avg = sum / Math.max(1, end - start);
-            reactiveSignals.put(String.format(Locale.US, "band_%02d", b + 1), clamp01(avg));
+        if (hatPeak > 0.85f) {
+            vocal *= 0.85f;
         }
-    }
 
-    private void addTopPeaks() {
-        int n = smoothedBars.length;
-        boolean[] blocked = new boolean[n];
-
-        for (int peakIndex = 0; peakIndex < 6; peakIndex++) {
-            int bestIdx = -1;
-            float bestValue = 0f;
-
-            for (int i = 0; i < n; i++) {
-                if (blocked[i]) continue;
-
-                float value = smoothedBars[i];
-                if (value > bestValue) {
-                    bestValue = value;
-                    bestIdx = i;
-                }
-            }
-
-            if (bestIdx < 0 || bestValue < 0.05f) {
-                break;
-            }
-
-            reactiveSignals.put(String.format(Locale.US, "peak_%02d", peakIndex + 1), clamp01(bestValue));
-
-            int from = Math.max(0, bestIdx - 1);
-            int to = Math.min(n - 1, bestIdx + 1);
-            for (int i = from; i <= to; i++) {
-                blocked[i] = true;
-            }
-        }
+        return vocal;
     }
 
     private boolean checkIsHit(int i, float rawValue, float[] currentFrame) {

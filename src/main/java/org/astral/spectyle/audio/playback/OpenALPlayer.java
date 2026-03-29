@@ -1,6 +1,6 @@
-package org.astral.spectyle.playback;
+package org.astral.spectyle.audio.playback;
 
-import org.astral.spectyle.state.AudioBuffer;
+import org.astral.spectyle.audio.state.AudioBuffer;
 import org.jetbrains.annotations.NotNull;
 
 import static org.lwjgl.openal.AL10.*;

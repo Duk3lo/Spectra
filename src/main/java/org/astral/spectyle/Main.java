@@ -1,7 +1,7 @@
 package org.astral.spectyle;
 
 import org.astral.spectyle.config.AudioConfig;
-import org.astral.spectyle.engine.AudioEngine;
+import org.astral.spectyle.audio.engine.AudioEngine;
 import org.astral.spectyle.web.WebVisualizer;
 
 public class Main {

@@ -1,7 +1,7 @@
-package org.astral.spectyle.analysis;
+package org.astral.spectyle.audio.analysis;
 
 import org.astral.spectyle.config.AudioConfig;
-import org.astral.spectyle.state.AudioBuffer;
+import org.astral.spectyle.audio.state.AudioBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.jtransforms.fft.FloatFFT_1D;
 

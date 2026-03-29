@@ -1,14 +1,14 @@
-package org.astral.spectyle.engine;
+package org.astral.spectyle.audio.engine;
 
 import org.astral.spectyle.web.WebVisualizer;
-import org.astral.spectyle.api.AudioAPI;
-import org.astral.spectyle.analysis.SpectrumAnalyzer;
+import org.astral.spectyle.audio.api.AudioAPI;
+import org.astral.spectyle.audio.analysis.SpectrumAnalyzer;
 import org.astral.spectyle.config.AudioConfig;
-import org.astral.spectyle.decode.OggDecoder;
-import org.astral.spectyle.playback.OpenALContext;
-import org.astral.spectyle.playback.OpenALPlayer;
-import org.astral.spectyle.state.AudioBuffer;
-import org.astral.spectyle.detection.BeatDetector;
+import org.astral.spectyle.audio.decode.OggDecoder;
+import org.astral.spectyle.audio.playback.OpenALContext;
+import org.astral.spectyle.audio.playback.OpenALPlayer;
+import org.astral.spectyle.audio.state.AudioBuffer;
+import org.astral.spectyle.audio.detection.BeatDetector;
 
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;

@@ -3,7 +3,7 @@ package org.astral.spectyle.config;
 import java.util.concurrent.TimeUnit;
 
 public class AudioConfig {
-    private float currentVolume = 0.5f;
+    private float currentVolume = 0.0f;
 
     // Configuración para el evento retrasado
     private long delayedTaskTimePlaySong = 0L;

@@ -35,60 +35,50 @@ repositories {
 }
 
 dependencies {
-    val lwjglVersion = "+"
+    val lwjglVersion = "3.4.1"
+
     implementation(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))
     implementation("org.lwjgl:lwjgl")
     implementation("org.lwjgl:lwjgl-openal")
     implementation("org.lwjgl:lwjgl-stb")
+
     runtimeOnly("org.lwjgl:lwjgl::$lwjglNatives")
     runtimeOnly("org.lwjgl:lwjgl-openal::$lwjglNatives")
     runtimeOnly("org.lwjgl:lwjgl-stb::$lwjglNatives")
+
     implementation("com.github.wendykierp:JTransforms:3.1")
     compileOnly("org.jetbrains:annotations:24.1.0")
     compileOnly("com.hypixel.hytale:Server:+")
 }
 
-tasks.withType<JavaExec> {
-    jvmArgs(
-        "--enable-native-access=ALL-UNNAMED",
-        "--add-opens=java.base/java.nio=ALL-UNNAMED",
-        "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
-        "--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED",
-        "--add-opens=java.base/jdk.internal.reflect=ALL-UNNAMED",
-        "-Dorg.lwjgl.util.NoChecks=true",
-        "-Dorg.lwjgl.system.allocator=system",
-        "-XX:+IgnoreUnrecognizedVMOptions"
-    )
+val nativeAccessArgs = listOf(
+    "--enable-native-access=ALL-UNNAMED",
+)
+
+tasks.withType<JavaExec>().configureEach {
+    jvmArgs(nativeAccessArgs)
 }
 
+tasks.withType<Test>().configureEach {
+    jvmArgs(nativeAccessArgs)
+}
+
+application {
+    mainClass.set("org.astral.spectyle.Main")
+    applicationDefaultJvmArgs = nativeAccessArgs
+}
 
 tasks.register<Exec>("runExternal") {
     group = "application"
     dependsOn("classes")
+
     val classpath = sourceSets["main"].runtimeClasspath.asPath
     val mainClass = "org.astral.spectyle.Main"
-    val jvmArguments = listOf(
+
+    commandLine(
         "java",
-        "--enable-native-access=ALL-UNNAMED",
-        "--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED",
-        "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
-        "--add-opens=java.base/java.nio=ALL-UNNAMED",
-        "-Dorg.lwjgl.util.NoChecks=true",
-        "-Dorg.lwjgl.system.allocator=system",
+        *nativeAccessArgs.toTypedArray(),
         "-cp", classpath,
         mainClass
-    )
-
-    commandLine("gnome-terminal", "--", *jvmArguments.toTypedArray())
-}
-application {
-    mainClass.set("org.astral.spectyle.Main")
-    applicationDefaultJvmArgs = listOf(
-        "--enable-native-access=ALL-UNNAMED",
-        "--add-opens=java.base/java.nio=ALL-UNNAMED",
-        "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
-        "--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED",
-        "-Dorg.lwjgl.util.NoChecks=true",
-        "-Dorg.lwjgl.system.allocator=system"
     )
 }

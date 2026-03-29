@@ -1,6 +1,6 @@
-package org.astral.spectyle.decode;
+package org.astral.spectyle.audio.decode;
 
-import org.astral.spectyle.state.AudioBuffer;
+import org.astral.spectyle.audio.state.AudioBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.stb.STBVorbis;

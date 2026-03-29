@@ -1,4 +1,4 @@
-package org.astral.spectyle.analysis;
+package org.astral.spectyle.audio.analysis;
 
 import org.jetbrains.annotations.NotNull;
 

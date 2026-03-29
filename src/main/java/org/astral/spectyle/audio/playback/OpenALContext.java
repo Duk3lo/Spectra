@@ -1,4 +1,4 @@
-package org.astral.spectyle.playback;
+package org.astral.spectyle.audio.playback;
 
 import org.lwjgl.openal.AL;
 import org.lwjgl.openal.ALC;

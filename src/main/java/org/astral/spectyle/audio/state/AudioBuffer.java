@@ -1,4 +1,4 @@
-package org.astral.spectyle.state;
+package org.astral.spectyle.audio.state;
 
 import java.nio.ShortBuffer;
 

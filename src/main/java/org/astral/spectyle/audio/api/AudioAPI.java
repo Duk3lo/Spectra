@@ -1,4 +1,4 @@
-package org.astral.spectyle.api;
+package org.astral.spectyle.audio.api;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -27,6 +27,9 @@ public class AudioAPI {
     private static volatile float volume = 0.0f;
 
     private static volatile float[] currentBars = new float[0];
+    private static volatile ReactiveSnapshot reactiveSnapshot = new ReactiveSnapshot(
+            0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f
+    );
 
     public static @NotNull String getCurrentTimeFormatted() {
         return formatTime(currentPositionSeconds);
@@ -62,11 +65,18 @@ public class AudioAPI {
     }
 
     public static void setBars(float[] newBars) {
-        if (newBars != null) currentBars = newBars;
+        if (newBars != null) {
+            currentBars = Arrays.copyOf(newBars, newBars.length);
+        }
     }
 
-    public static float getCurrentTime() { return currentPositionSeconds; }
-    public static float getTotalTime() { return totalDurationSeconds; }
+    public static float getCurrentTime() {
+        return currentPositionSeconds;
+    }
+
+    public static float getTotalTime() {
+        return totalDurationSeconds;
+    }
 
     public static float getProgress() {
         float total = totalDurationSeconds;
@@ -128,13 +138,39 @@ public class AudioAPI {
         return isPlaying;
     }
 
-    public static void setKickIntensity(float value) { kickIntensity = value; }
-    public static void setSnareIntensity(float value) { snareIntensity = value; }
-    public static void setHatIntensity(float value) { hatIntensity = value; }
+    public static void setKickIntensity(float value) {
+        kickIntensity = value;
+    }
 
-    public static float getKickIntensity() { return kickIntensity; }
-    public static float getSnareIntensity() { return snareIntensity; }
-    public static float getHatIntensity() { return hatIntensity; }
+    public static void setSnareIntensity(float value) {
+        snareIntensity = value;
+    }
+
+    public static void setHatIntensity(float value) {
+        hatIntensity = value;
+    }
+
+    public static float getKickIntensity() {
+        return kickIntensity;
+    }
+
+    public static float getSnareIntensity() {
+        return snareIntensity;
+    }
+
+    public static float getHatIntensity() {
+        return hatIntensity;
+    }
+
+    public static void setReactiveSnapshot(ReactiveSnapshot snapshot) {
+        if (snapshot != null) {
+            reactiveSnapshot = snapshot;
+        }
+    }
+
+    public static ReactiveSnapshot getReactiveSnapshot() {
+        return reactiveSnapshot;
+    }
 
     public static void reset() {
         globalEnergy = 0.0f;
@@ -152,7 +188,15 @@ public class AudioAPI {
 
         particleSpeedMultiplier = 1.0f;
 
-        Arrays.fill(currentBars, 0.0f);
+        currentBars = new float[0];
+
+        reactiveSnapshot = new ReactiveSnapshot(
+                0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f
+        );
+
+        bassHit.set(false);
+        snareHit.set(false);
+        hatHit.set(false);
     }
 
     public static float getVolume() {
