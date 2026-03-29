@@ -175,7 +175,7 @@ public class WebVisualizer {
         });
     }
 
-    private String escapeJson(String s) {
+    private @NotNull String escapeJson(@NotNull String s) {
         return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 

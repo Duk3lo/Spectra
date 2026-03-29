@@ -2,7 +2,7 @@
   "Group": "Astral",
   "Name": "Spectyle",
   "Version": "0.0.1",
-  "Main": "org.astral.spectyle.Main",
+  "Main": "org.astral.spectyle.hytale.Main",
   "ServerVersion": "2026.02.19-1a311a592",
   "Authors": [
     {

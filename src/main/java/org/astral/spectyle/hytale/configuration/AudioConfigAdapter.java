@@ -1,4 +1,4 @@
-package org.astral.spectyle.hytale;
+package org.astral.spectyle.hytale.configuration;
 
 import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.KeyedCodec;
@@ -8,7 +8,6 @@ import org.jetbrains.annotations.NotNull;
 
 public final class AudioConfigAdapter {
 
-    // Codec principal con llaves en Mayúsculas
     public static final BuilderCodec<AudioConfig> CODEC = BuilderCodec.builder(AudioConfig.class, AudioConfig::new)
             .append(new KeyedCodec<>("General", generalCodec()), (m, v, ctx) -> m.setGeneral(v), (m, ctx) -> m.getGeneral())
             .add()
