@@ -1,4 +1,4 @@
-package org.astral.audio;
+/*package org.astral.spectyle;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -163,4 +163,4 @@ public class RhythmAPI {
     public static void setVolume(float volume) {
         RhythmAPI.volume = volume;
     }
-}
+}*/

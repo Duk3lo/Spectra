@@ -1,4 +1,4 @@
-package org.astral.audio;
+package org.astral.spectyle.web;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -12,6 +12,7 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -109,40 +110,73 @@ public class WebVisualizer {
     public void sendVolumeUpdate(float volume) {
         if (clients.isEmpty() || server == null) return;
         String msg = "data: {\"type\":\"volume_change\", \"value\":" + String.format(Locale.US, "%.2f", volume) + "}\n\n";
-        byte[] bytes = msg.getBytes();
+        byte[] bytes = msg.getBytes(StandardCharsets.UTF_8);
         clients.removeIf(os -> {
-            try { os.write(bytes); os.flush(); return false; }
-            catch (IOException e) { return true; }
+            try {
+                os.write(bytes);
+                os.flush();
+                return false;
+            } catch (IOException e) {
+                return true;
+            }
         });
     }
 
-    public void update(float[] bars, float[] beatIntensity, float energy, int combo, float speed, boolean isPaused, float currentSecs, float totalSecs) {
+    public void update(float[] bars,
+                       float[] beatIntensity,
+                       Map<String, Float> features,
+                       float energy,
+                       int combo,
+                       float speed,
+                       boolean isPaused,
+                       float currentSecs,
+                       float totalSecs) {
         if (clients.isEmpty() || server == null) return;
 
         StringBuilder sb = new StringBuilder();
         sb.append("{\"bars\":[");
         for (int i = 0; i < bars.length; i++) {
-            sb.append(String.format(java.util.Locale.US, "%.3f", bars[i]));
+            sb.append(String.format(Locale.US, "%.3f", bars[i]));
             if (i < bars.length - 1) sb.append(",");
         }
+
         sb.append("],\"intensities\":[");
         for (int i = 0; i < beatIntensity.length; i++) {
-            sb.append(String.format(java.util.Locale.US, "%.3f", beatIntensity[i]));
+            sb.append(String.format(Locale.US, "%.3f", beatIntensity[i]));
             if (i < beatIntensity.length - 1) sb.append(",");
         }
-        sb.append("],\"energy\":").append(String.format(java.util.Locale.US, "%.3f", energy))
+
+        sb.append("],\"features\":{");
+        int index = 0;
+        for (Map.Entry<String, Float> entry : features.entrySet()) {
+            sb.append("\"").append(escapeJson(entry.getKey())).append("\":")
+                    .append(String.format(Locale.US, "%.3f", entry.getValue()));
+            if (index < features.size() - 1) sb.append(",");
+            index++;
+        }
+
+        sb.append("},\"energy\":").append(String.format(Locale.US, "%.3f", energy))
                 .append(",\"combo\":").append(combo)
-                .append(",\"speed\":").append(String.format(java.util.Locale.US, "%.2f", speed))
+                .append(",\"speed\":").append(String.format(Locale.US, "%.2f", speed))
                 .append(",\"paused\":").append(isPaused)
-                .append(",\"current\":").append(String.format(java.util.Locale.US, "%.1f", currentSecs))
-                .append(",\"total\":").append(String.format(java.util.Locale.US, "%.1f", totalSecs))
+                .append(",\"current\":").append(String.format(Locale.US, "%.1f", currentSecs))
+                .append(",\"total\":").append(String.format(Locale.US, "%.1f", totalSecs))
                 .append("}");
 
-        byte[] bytes = ("data: " + sb + "\n\n").getBytes();
+        byte[] bytes = ("data: " + sb + "\n\n").getBytes(StandardCharsets.UTF_8);
         clients.removeIf(os -> {
-            try { os.write(bytes); os.flush(); return false; }
-            catch (IOException e) { return true; }
+            try {
+                os.write(bytes);
+                os.flush();
+                return false;
+            } catch (IOException e) {
+                return true;
+            }
         });
+    }
+
+    private String escapeJson(String s) {
+        return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     class StaticResourceHandler implements HttpHandler {
@@ -208,8 +242,7 @@ public class WebVisualizer {
                     if (volumeCallback != null) {
                         volumeCallback.onVolumeChange(Float.parseFloat(q.split("=")[1]));
                     }
-                }
-                catch (Exception ignored) {}
+                } catch (Exception ignored) {}
             }
             exchange.sendResponseHeaders(200, -1);
             exchange.close();

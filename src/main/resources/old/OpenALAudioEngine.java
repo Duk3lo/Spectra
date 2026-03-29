@@ -1,5 +1,9 @@
-package org.astral.audio;
+/*package org.astral.spectyle;
 
+import org.astral.spectyle.AudioEngineConfig;
+import org.astral.spectyle.Main;
+import org.astral.spectyle.RhythmAPI;
+import org.astral.spectyle.web.WebVisualizer;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.openal.*;
@@ -483,4 +487,4 @@ public class OpenALAudioEngine {
         if (context != 0) alcDestroyContext(context);
         if (device != 0) alcCloseDevice(device);
     }
-}
+}*/
