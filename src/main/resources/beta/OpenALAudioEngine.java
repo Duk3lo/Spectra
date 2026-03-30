@@ -1,4 +1,4 @@
-/*package org.astral.spectyle;
+package org.astral.spectyle;
 
 import org.astral.spectyle.AudioEngineConfig;
 import org.astral.spectyle.Main;
@@ -21,6 +21,7 @@ import java.util.concurrent.*;
 import static org.lwjgl.openal.AL10.*;
 import static org.lwjgl.openal.ALC10.*;
 
+@Deprecated
 public class OpenALAudioEngine {
 
     // ==== Configuración Activa y Sincronización ====
@@ -487,4 +488,4 @@ public class OpenALAudioEngine {
         if (context != 0) alcDestroyContext(context);
         if (device != 0) alcCloseDevice(device);
     }
-}*/
+}

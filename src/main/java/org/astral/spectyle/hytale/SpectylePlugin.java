@@ -10,15 +10,15 @@ import org.astral.spectyle.hytale.configuration.AudioConfigAdapter;
 import org.astral.spectyle.web.WebVisualizer;
 import org.jetbrains.annotations.NotNull;
 
-public final class MainPlugin extends JavaPlugin {
-    private static MainPlugin instance;
+public final class SpectylePlugin extends JavaPlugin {
+    private static SpectylePlugin instance;
 
     private final Config<AudioConfig> audioConfigFile;
     private AudioConfig config;
     private final AudioEngine engine;
     private final WebVisualizer webVisualizer;
 
-    public MainPlugin(@NotNull JavaPluginInit init) {
+    public SpectylePlugin(@NotNull JavaPluginInit init) {
         super(init);
         this.audioConfigFile = this.withConfig("AudioConfig", AudioConfigAdapter.CODEC);
         this.config = this.audioConfigFile.load().join();
@@ -35,7 +35,7 @@ public final class MainPlugin extends JavaPlugin {
         webVisualizer.waitForConnection();
         engine.start();
         getLogger().atInfo().log("Engine Started");
-        CommandAudio.registerAll(getCommandRegistry());
+        getCommandRegistry().registerCommand(new CommandAudio("Spectyle", "Using for Audios Analyzer"));
     }
 
     @Override
@@ -51,7 +51,7 @@ public final class MainPlugin extends JavaPlugin {
         getLogger().atInfo().log("Configuración recargada");
     }
 
-    public static MainPlugin getInstance(){
+    public static SpectylePlugin getInstance(){
         return instance;
     }
 

@@ -1,4 +1,4 @@
-/*package org.astral.spectyle;
+package org.astral.spectyle;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@Deprecated
 public class RhythmAPI {
 
     private static final AtomicBoolean bassHit = new AtomicBoolean(false);
@@ -163,4 +164,4 @@ public class RhythmAPI {
     public static void setVolume(float volume) {
         RhythmAPI.volume = volume;
     }
-}*/
+}

@@ -51,7 +51,7 @@ public final class AudioConfig {
 
     public static class Visualizer {
         private int fftSize = 2048;
-        private int numBars = 32; // Mejorado a 64 para separar sub-bajos
+        private int numBars = 32;
         public int getFftSize() { return fftSize; }
         public void setFftSize(int fftSize) { this.fftSize = fftSize; }
         public int getNumBars() { return numBars; }
@@ -59,7 +59,7 @@ public final class AudioConfig {
     }
 
     public static class Smoothing {
-        private float attack = 0.85f; // Más rápido para visuales eléctricos
+        private float attack = 0.85f;
         private float decay = 0.18f;
         public float getAttack() { return attack; }
         public void setAttack(float attack) { this.attack = attack; }

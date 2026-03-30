@@ -1,7 +1,8 @@
-/*package org.astral.spectyle;
+package org.astral.spectyle;
 
 import java.util.concurrent.TimeUnit;
 
+@Deprecated
 public final class AudioEngineConfig {
     // Volumen
     private float currentVolume = 0.5f;
@@ -65,4 +66,4 @@ public final class AudioEngineConfig {
     public void setUpdateRateMs(int updateRateMs) { this.updateRateMs = updateRateMs; }
     public void setDelayedTaskTimePlaySong(long delayedTaskTimePlaySong) { this.delayedTaskTimePlaySong = delayedTaskTimePlaySong; }
     public void setDelayedTaskTimeUnitPlaySong(TimeUnit delayedTaskTimeUnitPlaySong) { this.delayedTaskTimeUnitPlaySong = delayedTaskTimeUnitPlaySong; }
-}*/
+}

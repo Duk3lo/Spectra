@@ -6,7 +6,7 @@ import org.astral.spectyle.web.WebVisualizer;
 import java.util.concurrent.TimeUnit;
 
 public class Main {
-    private static final String finalAudio = "src/main/resources/musics/miss.ogg";
+    private static final String finalAudio = "src/main/resources/musics/mind.ogg";
     private static final WebVisualizer webVisualizer = new WebVisualizer("OpenAL (AudioSpectrum)", 8080);
 
     public static void main(String[] args) {
