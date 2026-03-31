@@ -1,7 +1,8 @@
 plugins {
     id("java")
-    application
+    id("com.gradleup.shadow") version "9.2.0"
 }
+
 
 group = "org.astral.spectyle"
 version = "1.0-SNAPSHOT"
@@ -9,6 +10,14 @@ version = "1.0-SNAPSHOT"
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(21))
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = "Hytale"
+        url = uri("https://maven.hytale.com/release")
     }
 }
 
@@ -24,14 +33,6 @@ val lwjglNatives = when {
         if (osArch.contains("arm") || osArch.contains("aarch64")) "natives-macos-arm64" else "natives-macos"
     }
     else -> "natives-linux"
-}
-
-repositories {
-    mavenCentral()
-    maven {
-        name = "Hytale"
-        url = uri("https://maven.hytale.com/release")
-    }
 }
 
 dependencies {
@@ -55,30 +56,31 @@ val nativeAccessArgs = listOf(
     "--enable-native-access=ALL-UNNAMED",
 )
 
-tasks.withType<JavaExec>().configureEach {
+tasks.withType<JavaExec> {
     jvmArgs(nativeAccessArgs)
 }
 
-tasks.withType<Test>().configureEach {
-    jvmArgs(nativeAccessArgs)
+tasks.shadowJar {
+    archiveClassifier.set("")
+    mergeServiceFiles()
+
+    manifest {
+        attributes(
+            "Main-Class" to "org.astral.spectyle.Main"
+        )
+    }
 }
 
-application {
-    mainClass.set("org.astral.spectyle.Main")
-    applicationDefaultJvmArgs = nativeAccessArgs
+tasks.build {
+    dependsOn(tasks.shadowJar)
 }
 
-tasks.register<Exec>("runExternal") {
+tasks.register<JavaExec>("runMain") {
     group = "application"
-    dependsOn("classes")
+    description = "Main test"
 
-    val classpath = sourceSets["main"].runtimeClasspath.asPath
-    val mainClass = "org.astral.spectyle.Main"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("org.astral.spectyle.Main")
 
-    commandLine(
-        "java",
-        *nativeAccessArgs.toTypedArray(),
-        "-cp", classpath,
-        mainClass
-    )
+    jvmArgs(nativeAccessArgs)
 }

@@ -7,17 +7,31 @@ import org.lwjgl.stb.STBVorbis;
 import org.lwjgl.stb.STBVorbisInfo;
 import org.lwjgl.system.MemoryStack;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 
 public class OggDecoder {
+
     public static @NotNull AudioBuffer loadAudio(String path) {
+        ByteBuffer vorbisBuffer;
+
+        try {
+            vorbisBuffer = ioResourceToByteBuffer(path);
+        } catch (IOException e) {
+            throw new RuntimeException("No se pudo leer el archivo: " + path, e);
+        }
+
         try (MemoryStack stack = MemoryStack.stackPush()) {
             IntBuffer error = stack.mallocInt(1);
-            ByteBuffer pathBuffer = stack.UTF8(path);
-            long decoder = STBVorbis.stb_vorbis_open_filename(pathBuffer, error, null);
-            if (decoder == 0) throw new RuntimeException("Error: archivo no encontrado: " + path);
+            long decoder = STBVorbis.stb_vorbis_open_memory(vorbisBuffer, error, null);
+            if (decoder == 0) {
+                throw new RuntimeException("Error al decodificar OGG (Error code: " + error.get(0) + "): " + path);
+            }
 
             STBVorbisInfo info = STBVorbisInfo.malloc(stack);
             STBVorbis.stb_vorbis_get_info(decoder, info);
@@ -29,10 +43,38 @@ public class OggDecoder {
 
             int totalSamples = totalSamplesInStream * channels;
             ShortBuffer pcmData = BufferUtils.createShortBuffer(totalSamples);
+
             STBVorbis.stb_vorbis_get_samples_short_interleaved(decoder, channels, pcmData);
             STBVorbis.stb_vorbis_close(decoder);
 
             return new AudioBuffer(pcmData, channels, sampleRate, duration);
         }
+    }
+
+    private static @NotNull ByteBuffer ioResourceToByteBuffer(@NotNull String resourcePath) throws IOException {
+        ByteBuffer buffer;
+        String cleanedPath = resourcePath.startsWith("/") ? resourcePath.substring(1) : resourcePath;
+        InputStream source = Thread.currentThread().getContextClassLoader().getResourceAsStream(cleanedPath);
+        if (source == null) {
+            java.io.File file = new java.io.File(resourcePath);
+            if (!file.exists()) throw new IOException("Archivo no encontrado en recursos ni en disco: " + resourcePath);
+            source = new java.io.FileInputStream(file);
+        }
+        try (ReadableByteChannel rbc = Channels.newChannel(source)) {
+            buffer = BufferUtils.createByteBuffer(1024 * 1024);
+
+            while (true) {
+                int bytes = rbc.read(buffer);
+                if (bytes == -1) break;
+                if (buffer.remaining() == 0) {
+                    ByteBuffer newBuffer = BufferUtils.createByteBuffer(buffer.capacity() * 2);
+                    buffer.flip();
+                    newBuffer.put(buffer);
+                    buffer = newBuffer;
+                }
+            }
+        }
+        buffer.flip();
+        return buffer;
     }
 }

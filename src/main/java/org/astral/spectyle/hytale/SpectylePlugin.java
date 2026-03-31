@@ -7,6 +7,7 @@ import org.astral.spectyle.audio.engine.AudioEngine;
 import org.astral.spectyle.config.AudioConfig;
 import org.astral.spectyle.hytale.commands.CommandAudio;
 import org.astral.spectyle.hytale.configuration.AudioConfigAdapter;
+import org.astral.spectyle.hytale.configuration.ConfigLoader;
 import org.astral.spectyle.web.WebVisualizer;
 import org.jetbrains.annotations.NotNull;
 
@@ -17,6 +18,7 @@ public final class SpectylePlugin extends JavaPlugin {
     private AudioConfig config;
     private final AudioEngine engine;
     private final WebVisualizer webVisualizer;
+    private static final String command = "spec";
 
     public SpectylePlugin(@NotNull JavaPluginInit init) {
         super(init);
@@ -24,18 +26,26 @@ public final class SpectylePlugin extends JavaPlugin {
         this.config = this.audioConfigFile.load().join();
         this.engine = new AudioEngine(this.config);
         this.webVisualizer = new WebVisualizer("OpenAL (AudioSpectrum)", 8080);
+
     }
 
     @Override
     protected void setup() {
         instance = this;
+        ConfigLoader loader = new ConfigLoader(this).add("AudioConfig", audioConfigFile);
+
+        loader.loadAll();
+        config = audioConfigFile.load().join();
+
+        System.out.println(getDataDirectory());
+
         engine.setWebVisualizer(webVisualizer);
         webVisualizer.setVolumeCallback(engine::setVolume);
         webVisualizer.start();
         webVisualizer.waitForConnection();
         engine.start();
         getLogger().atInfo().log("Engine Started");
-        getCommandRegistry().registerCommand(new CommandAudio("Spectyle", "Using for Audios Analyzer"));
+        getCommandRegistry().registerCommand(new CommandAudio(command, "Using for Audios Analyzer"));
     }
 
     @Override
