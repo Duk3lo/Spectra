@@ -1,4 +1,4 @@
-package org.astral.spectyle;
+/*package org.astral.spectyle;
 
 import org.astral.spectyle.AudioEngineConfig;
 import org.astral.spectyle.Main;
@@ -488,4 +488,4 @@ public class OpenALAudioEngine {
         if (context != 0) alcDestroyContext(context);
         if (device != 0) alcCloseDevice(device);
     }
-}
+}*/

@@ -1,6 +1,7 @@
 package org.astral.spectyle.hytale.to_asset;
 
 import com.google.gson.GsonBuilder;
+import com.hypixel.hytale.server.core.asset.type.soundevent.config.SoundEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -45,11 +46,10 @@ public final class AssetPackBuilder {
 
         ensureManifest();
 
-        String soundEventId = "SFX_Synth_" + toPascal(triggerName);
-
+        String soundEventId = toPascal(triggerName);
         BuiltPaths built = copyOgg(localOgg, renamedOggFileName);
 
-        SoundEventJson soundEventJson = SoundEventJson.create(built.relative());
+        SoundEventJson soundEventJson = SoundEventJson.create(built.relative(), built.absolute());
         jsonFiles.writeJsonSafely(paths.soundEventFile(soundEventId), soundEventJson);
 
         return new BuiltCustomSound(

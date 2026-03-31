@@ -8,6 +8,7 @@ import org.astral.spectyle.config.AudioConfig;
 import org.astral.spectyle.hytale.commands.CommandAudio;
 import org.astral.spectyle.hytale.configuration.AudioConfigAdapter;
 import org.astral.spectyle.hytale.configuration.ConfigLoader;
+import org.astral.spectyle.hytale.to_asset.AssetPackBuilder;
 import org.astral.spectyle.web.WebVisualizer;
 import org.jetbrains.annotations.NotNull;
 
@@ -16,28 +17,25 @@ public final class SpectylePlugin extends JavaPlugin {
 
     private final Config<AudioConfig> audioConfigFile;
     private AudioConfig config;
-    private final AudioEngine engine;
+    private AudioEngine engine;
     private final WebVisualizer webVisualizer;
     private static final String command = "spec";
+    private static AssetPackBuilder assetPack;
 
     public SpectylePlugin(@NotNull JavaPluginInit init) {
         super(init);
-        this.audioConfigFile = this.withConfig("AudioConfig", AudioConfigAdapter.CODEC);
-        this.config = this.audioConfigFile.load().join();
-        this.engine = new AudioEngine(this.config);
-        this.webVisualizer = new WebVisualizer("OpenAL (AudioSpectrum)", 8080);
-
+        audioConfigFile = withConfig("AudioConfig", AudioConfigAdapter.CODEC);
+        webVisualizer = new WebVisualizer("OpenAL (AudioSpectrum)", 8080);
     }
 
     @Override
     protected void setup() {
         instance = this;
-        ConfigLoader loader = new ConfigLoader(this).add("AudioConfig", audioConfigFile);
-
-        loader.loadAll();
+        ConfigLoader.init(this);
+        ConfigLoader.add("AudioConfig", audioConfigFile);
+        ConfigLoader.loadAll();
         config = audioConfigFile.load().join();
-
-        System.out.println(getDataDirectory());
+        engine = new AudioEngine(config);
 
         engine.setWebVisualizer(webVisualizer);
         webVisualizer.setVolumeCallback(engine::setVolume);

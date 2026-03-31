@@ -3,7 +3,6 @@ plugins {
     id("com.gradleup.shadow") version "9.2.0"
 }
 
-
 group = "org.astral.spectyle"
 version = "1.0-SNAPSHOT"
 
@@ -21,20 +20,6 @@ repositories {
     }
 }
 
-val osName = System.getProperty("os.name").lowercase()
-val osArch = System.getProperty("os.arch").lowercase()
-
-val lwjglNatives = when {
-    osName.contains("win") -> "natives-windows"
-    osName.contains("linux") -> {
-        if (osArch.contains("arm") || osArch.contains("aarch64")) "natives-linux-arm64" else "natives-linux"
-    }
-    osName.contains("mac") -> {
-        if (osArch.contains("arm") || osArch.contains("aarch64")) "natives-macos-arm64" else "natives-macos"
-    }
-    else -> "natives-linux"
-}
-
 dependencies {
     val lwjglVersion = "3.4.1"
 
@@ -43,9 +28,18 @@ dependencies {
     implementation("org.lwjgl:lwjgl-openal")
     implementation("org.lwjgl:lwjgl-stb")
 
-    runtimeOnly("org.lwjgl:lwjgl::$lwjglNatives")
-    runtimeOnly("org.lwjgl:lwjgl-openal::$lwjglNatives")
-    runtimeOnly("org.lwjgl:lwjgl-stb::$lwjglNatives")
+    listOf(
+        "natives-windows",
+        "natives-linux",
+        "natives-linux-arm64",
+        "natives-macos",
+        "natives-macos-arm64",
+        "natives-windows-arm64"
+    ).forEach { n ->
+        runtimeOnly("org.lwjgl:lwjgl::$n")
+        runtimeOnly("org.lwjgl:lwjgl-openal::$n")
+        runtimeOnly("org.lwjgl:lwjgl-stb::$n")
+    }
 
     implementation("com.github.wendykierp:JTransforms:3.1")
     compileOnly("org.jetbrains:annotations:24.1.0")
