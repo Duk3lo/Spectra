@@ -3,6 +3,7 @@ package org.astral.spectyle.web;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import org.astral.spectyle.logging.EngineLogger;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -17,7 +18,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class WebVisualizer {
+public final class WebVisualizer {
 
     private static final String webFolder = "/web";
 
@@ -26,6 +27,7 @@ public class WebVisualizer {
 
     private final String engineName;
     private final int startPort;
+    private final EngineLogger logger;
 
     private VolumeCallback volumeCallback;
 
@@ -35,9 +37,10 @@ public class WebVisualizer {
         void onVolumeChange(float level);
     }
 
-    public WebVisualizer(String engineName, int startPort) {
+    public WebVisualizer(String engineName, int startPort, EngineLogger logger) {
         this.engineName = engineName;
         this.startPort = startPort;
+        this.logger = logger;
     }
 
     public void setVolumeCallback(VolumeCallback callback) {
@@ -68,20 +71,20 @@ public class WebVisualizer {
             server.start();
 
             String url = "http://localhost:" + port;
-            System.out.println("\u001B[32m[" + engineName + "] Servidor web iniciado en " + url + "\u001B[0m");
+            logger.info("\u001B[32m[" + engineName + "] Web server started at " + url + "\u001B[0m");
 
             abrirNavegador(url);
 
         } catch (Exception e) {
-            System.err.println("Error en la carga web: " + e);
+            logger.error("Error loading web server: " + e.getMessage(), e);
         }
     }
 
     public void waitForConnection() {
-        System.out.println("\u001B[33m[" + engineName + "] Esperando a que el navegador se conecte...\u001B[0m");
+        logger.info("\u001B[33m[" + engineName + "] Waiting for browser connection...\u001B[0m");
         try {
             boolean connected = clientConnectedLatch.await(10, TimeUnit.SECONDS);
-            if (connected) System.out.println("\u001B[32m[" + engineName + "] ¡Navegador sincronizado!\u001B[0m");
+            if (connected) logger.info("\u001B[32m[" + engineName + "] Browser synchronized!\u001B[0m");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -94,7 +97,7 @@ public class WebVisualizer {
             else if (os.contains("mac")) Runtime.getRuntime().exec(new String[]{"open", url});
             else Runtime.getRuntime().exec(new String[]{"xdg-open", url});
         } catch (Exception e) {
-            System.out.println("\u001B[33mAbre tu navegador en: " + url + "\u001B[0m");
+            logger.warn("\u001B[33mOpen your browser at: " + url + "\u001B[0m");
         }
     }
 

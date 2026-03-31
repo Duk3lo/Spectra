@@ -5,6 +5,7 @@ import org.astral.spectyle.audio.api.AudioAPI;
 import org.astral.spectyle.audio.api.ReactiveSnapshot;
 import org.astral.spectyle.config.AudioConfig;
 import org.astral.spectyle.audio.state.AudioBuffer;
+import org.astral.spectyle.logging.EngineLogger;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -13,6 +14,7 @@ import java.util.Map;
 
 public class BeatDetector {
     private final AudioConfig config;
+    private final EngineLogger logger;
 
     private final float[] smoothedBars;
     private final float[] bandMaxes;
@@ -28,8 +30,9 @@ public class BeatDetector {
 
     private final Map<String, Float> reactiveSignals = new LinkedHashMap<>();
 
-    public BeatDetector(@NotNull AudioConfig config) {
+    public BeatDetector(@NotNull AudioConfig config, @NotNull EngineLogger logger) {
         this.config = config;
+        this.logger = logger;
 
         int numBars = config.getVisualizer().getNumBars();
 
@@ -48,7 +51,7 @@ public class BeatDetector {
     }
 
     public void preScan(@NotNull AudioBuffer buffer, SpectrumAnalyzer analyzer) {
-        System.out.println("\u001B[33m[BeatEngine] Pre-escaneando canción (Análisis Multi-Banda)...\u001B[0m");
+        logger.info("\u001B[33m[BeatEngine] Pre-scanning song (Multi-Band Analysis)...\u001B[0m");
         long start = System.currentTimeMillis();
 
         int numBars = config.getVisualizer().getNumBars();
@@ -74,7 +77,7 @@ public class BeatDetector {
             globalBandAvg[i] = sumEnergy[i] / Math.max(1, frames);
         }
 
-        System.out.println("\u001B[32m[BeatEngine] Escaneo completado en " + (System.currentTimeMillis() - start) + "ms.\u001B[0m");
+        logger.info("\u001B[32m[BeatEngine] Scan completed in " + (System.currentTimeMillis() - start) + "ms.\u001B[0m");
     }
 
     public void processFrame(float[] currentFrame, long currentTime) {
@@ -168,29 +171,15 @@ public class BeatDetector {
         }
 
         buildReactiveSignals(
-                targetEnergy,
-                maxKickInt,
-                maxSnareInt,
-                maxHatInt,
-                bassEnergy,
-                midEnergy,
-                highEnergy,
-                bassCount,
-                midCount,
-                highCount
+                targetEnergy, maxKickInt, maxSnareInt, maxHatInt,
+                bassEnergy, midEnergy, highEnergy,
+                bassCount, midCount, highCount
         );
     }
 
-    private void buildReactiveSignals(float targetEnergy,
-                                      float maxKickInt,
-                                      float maxSnareInt,
-                                      float maxHatInt,
-                                      float bassEnergy,
-                                      float midEnergy,
-                                      float highEnergy,
-                                      int bassCount,
-                                      int midCount,
-                                      int highCount) {
+    private void buildReactiveSignals(float targetEnergy, float maxKickInt, float maxSnareInt, float maxHatInt,
+                                      float bassEnergy, float midEnergy, float highEnergy,
+                                      int bassCount, int midCount, int highCount) {
         reactiveSignals.clear();
 
         float bassAvg = bassCount == 0 ? 0f : bassEnergy / bassCount;
@@ -216,28 +205,17 @@ public class BeatDetector {
         reactiveSignals.put("combo", Math.min(AudioAPI.getHitCombo() / 20.0f, 1.0f));
 
         AudioAPI.setReactiveSnapshot(new ReactiveSnapshot(
-                clamp01(maxKickInt),
-                clamp01(maxSnareInt),
-                clamp01(maxHatInt),
-                clamp01(targetEnergy),
-                clamp01(bassAvg),
-                clamp01(midAvg),
-                clamp01(highAvg),
-                clamp01(vocalPresence),
+                clamp01(maxKickInt), clamp01(maxSnareInt), clamp01(maxHatInt),
+                clamp01(targetEnergy), clamp01(bassAvg), clamp01(midAvg),
+                clamp01(highAvg), clamp01(vocalPresence),
                 Math.min(AudioAPI.getHitCombo() / 20.0f, 1.0f),
-                transientLevel,
-                brightness,
-                subBass
+                transientLevel, brightness, subBass
         ));
     }
 
     private float detectVocalPresence(float midAvg, float highAvg, float hatPeak) {
         float vocal = (midAvg * 0.75f) + (highAvg * 0.45f);
-
-        if (hatPeak > 0.85f) {
-            vocal *= 0.85f;
-        }
-
+        if (hatPeak > 0.85f) vocal *= 0.85f;
         return vocal;
     }
 
@@ -260,15 +238,7 @@ public class BeatDetector {
         return Math.min(v, 1f);
     }
 
-    public float[] getSmoothedBars() {
-        return smoothedBars;
-    }
-
-    public float[] getBeatIntensity() {
-        return beatIntensity;
-    }
-
-    public Map<String, Float> getReactiveSignals() {
-        return reactiveSignals;
-    }
+    public float[] getSmoothedBars() { return smoothedBars; }
+    public float[] getBeatIntensity() { return beatIntensity; }
+    public Map<String, Float> getReactiveSignals() { return reactiveSignals; }
 }

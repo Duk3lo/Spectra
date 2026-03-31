@@ -14,8 +14,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class Import extends CommandBase {
-    private final RequiredArg<String> fileOgg = withRequiredArg("File.ogg", "Example: Name.ogg in folder plugin", ArgTypes.STRING);
-    private final RequiredArg<String> nameOgg = withRequiredArg("Name_Song", "Example: File.ogg My_sound", ArgTypes.STRING);
+    private final RequiredArg<String> fileOgg = withRequiredArg("File.ogg", "Example: Name.ogg in plugin folder", ArgTypes.STRING);
+    private final RequiredArg<String> nameOgg = withRequiredArg("Sound_Name", "Example: File.ogg My_sound", ArgTypes.STRING);
 
     public Import(String name, String description, boolean requiresConfirmation) {
         super(name, description, requiresConfirmation);
@@ -28,24 +28,21 @@ public final class Import extends CommandBase {
         String name = nameOgg.get(ctx);
 
         if (!ogg.toLowerCase().endsWith(".ogg")) {
-            ctx.sendMessage(Message.raw("El archivo debe terminar en .ogg"));
+            ctx.sendMessage(Message.raw("The file must end with .ogg"));
             return;
         }
 
         Path source = ConfigLoader.getSoundPath().resolve(ogg).normalize();
-
         if (!Files.exists(source)) {
-            ctx.sendMessage(Message.raw("No existe el archivo: " + source));
+            ctx.sendMessage(Message.raw("File not found: " + source));
             return;
         }
-
         try {
             AssetPackBuilder builder = ConfigLoader.getAssetPack();
             AssetPackBuilder.BuiltCustomSound built = builder.buildCustomSound(source, name, ogg);
-            ctx.sendMessage(Message.raw("Sonido importado: " + built.soundEventId() + " Reload Server to Import to Assets"));
-
+            ctx.sendMessage(Message.raw("Sound imported successfully: " + built.soundEventId() + ". Reload the server to use the sound."));
         } catch (Exception e) {
-            ctx.sendMessage(Message.raw("Error al importar el sonido: " + e.getMessage()));
+            ctx.sendMessage(Message.raw("Error importing sound: " + e.getMessage()));
         }
     }
 }

@@ -5,10 +5,10 @@ import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.util.Config;
 import org.astral.spectyle.audio.engine.AudioEngine;
 import org.astral.spectyle.config.AudioConfig;
-import org.astral.spectyle.hytale.commands.CommandAudio;
+import org.astral.spectyle.hytale.commands.SpectyleCommands;
 import org.astral.spectyle.hytale.configuration.AudioConfigAdapter;
 import org.astral.spectyle.hytale.configuration.ConfigLoader;
-import org.astral.spectyle.hytale.to_asset.AssetPackBuilder;
+import org.astral.spectyle.hytale.loggin.PluginLogger;
 import org.astral.spectyle.web.WebVisualizer;
 import org.jetbrains.annotations.NotNull;
 
@@ -20,12 +20,13 @@ public final class SpectylePlugin extends JavaPlugin {
     private AudioEngine engine;
     private final WebVisualizer webVisualizer;
     private static final String command = "spec";
-    private static AssetPackBuilder assetPack;
+    private final PluginLogger pluginLogger = new PluginLogger(this);
 
     public SpectylePlugin(@NotNull JavaPluginInit init) {
         super(init);
         audioConfigFile = withConfig("AudioConfig", AudioConfigAdapter.CODEC);
-        webVisualizer = new WebVisualizer("OpenAL (AudioSpectrum)", 8080);
+
+        webVisualizer = new WebVisualizer("OpenAL (AudioSpectrum) - Hytale", 8080, pluginLogger);
     }
 
     @Override
@@ -35,7 +36,7 @@ public final class SpectylePlugin extends JavaPlugin {
         ConfigLoader.add("AudioConfig", audioConfigFile);
         ConfigLoader.loadAll();
         config = audioConfigFile.load().join();
-        engine = new AudioEngine(config);
+        engine = new AudioEngine(config, pluginLogger);
 
         engine.setWebVisualizer(webVisualizer);
         webVisualizer.setVolumeCallback(engine::setVolume);
@@ -43,7 +44,7 @@ public final class SpectylePlugin extends JavaPlugin {
         webVisualizer.waitForConnection();
         engine.start();
         getLogger().atInfo().log("Engine Started");
-        getCommandRegistry().registerCommand(new CommandAudio(command, "Using for Audios Analyzer"));
+        getCommandRegistry().registerCommand(new SpectyleCommands(command, "Using for Audios Analyzer"));
     }
 
     @Override

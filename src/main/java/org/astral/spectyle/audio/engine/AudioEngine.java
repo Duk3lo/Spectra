@@ -9,6 +9,7 @@ import org.astral.spectyle.audio.playback.OpenALContext;
 import org.astral.spectyle.audio.playback.OpenALPlayer;
 import org.astral.spectyle.audio.state.AudioBuffer;
 import org.astral.spectyle.audio.detection.BeatDetector;
+import org.astral.spectyle.logging.EngineLogger;
 
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
@@ -24,6 +25,7 @@ public class AudioEngine {
 
     private AudioConfig config;
     private final OpenALPlayer player;
+    private final EngineLogger logger;
 
     private AudioBuffer currentBuffer;
     private SpectrumAnalyzer analyzer;
@@ -41,8 +43,9 @@ public class AudioEngine {
 
     private WebVisualizer webVisualizer;
 
-    public AudioEngine(AudioConfig config) {
+    public AudioEngine(AudioConfig config, EngineLogger logger) {
         this.config = Objects.requireNonNull(config, "config");
+        this.logger = Objects.requireNonNull(logger, "logger");
         this.player = new OpenALPlayer();
         this.analyzer = new SpectrumAnalyzer(config);
     }
@@ -88,7 +91,7 @@ public class AudioEngine {
     public void reloadConfiguration(AudioConfig newConfig) {
         Objects.requireNonNull(newConfig, "newConfig");
 
-        System.out.println("\u001B[36m[AudioEngine] Aplicando nueva configuración en vivo...\u001B[0m");
+        logger.info("\u001B[36m[AudioEngine] Applying new configuration live...\u001B[0m");
 
         synchronized (engineLock) {
             boolean rebuildAnalysis =
@@ -108,13 +111,13 @@ public class AudioEngine {
             if (rebuildAnalysis) {
                 this.analyzer = new SpectrumAnalyzer(config);
                 if (currentBuffer != null) {
-                    this.beatDetector = new BeatDetector(config);
+                    this.beatDetector = new BeatDetector(config, logger);
                     this.beatDetector.preScan(currentBuffer, analyzer);
                 }
             }
 
             if (!rebuildAnalysis && beatDetector != null) {
-                this.beatDetector = new BeatDetector(config);
+                this.beatDetector = new BeatDetector(config, logger);
                 if (currentBuffer != null) {
                     this.beatDetector.preScan(currentBuffer, analyzer);
                 }
@@ -140,7 +143,7 @@ public class AudioEngine {
                 currentBuffer = OggDecoder.loadAudio(path);
                 player.load(currentBuffer, config.getGeneral().getCurrentVolume());
 
-                beatDetector = new BeatDetector(config);
+                beatDetector = new BeatDetector(config, logger);
                 beatDetector.preScan(currentBuffer, analyzer);
 
                 player.play(false);

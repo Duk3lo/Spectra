@@ -6,8 +6,8 @@ import org.astral.spectyle.hytale.commands.command.Play;
 import org.astral.spectyle.hytale.commands.command.Reload;
 import org.jetbrains.annotations.NotNull;
 
-public final class CommandAudio extends AbstractCommandCollection {
-    public CommandAudio(@NotNull String name, @NotNull String description) {
+public final class SpectyleCommands extends AbstractCommandCollection {
+    public SpectyleCommands(@NotNull String name, @NotNull String description) {
         super(name, description);
         addSubCommand(new Import("import", "import audio from Folder", false));
         addSubCommand(new Play("play", "Play Sound", false));
