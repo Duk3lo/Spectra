@@ -149,4 +149,8 @@ public final class AssetPackBuilder {
             return soundEventDir().resolve(soundEventId + ".json");
         }
     }
+
+    public SoundEventJson readSoundEventJson(@NotNull String soundEventId) throws IOException {
+        return jsonFiles.read(paths.soundEventFile(soundEventId), SoundEventJson.class);
+    }
 }

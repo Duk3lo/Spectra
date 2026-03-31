@@ -14,10 +14,20 @@ import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class OggDecoder {
 
     public static @NotNull AudioBuffer loadAudio(String path) {
+        try {
+            return loadAudio(Path.of(path));
+        } catch (Exception e) {
+            throw new RuntimeException("No se pudo leer el archivo: " + path, e);
+        }
+    }
+
+    public static @NotNull AudioBuffer loadAudio(@NotNull Path path) {
         ByteBuffer vorbisBuffer;
 
         try {
@@ -35,6 +45,7 @@ public class OggDecoder {
 
             STBVorbisInfo info = STBVorbisInfo.malloc(stack);
             STBVorbis.stb_vorbis_get_info(decoder, info);
+
             int channels = info.channels();
             int sampleRate = info.sample_rate();
 
@@ -51,21 +62,22 @@ public class OggDecoder {
         }
     }
 
-    private static @NotNull ByteBuffer ioResourceToByteBuffer(@NotNull String resourcePath) throws IOException {
+    private static @NotNull ByteBuffer ioResourceToByteBuffer(@NotNull Path path) throws IOException {
         ByteBuffer buffer;
-        String cleanedPath = resourcePath.startsWith("/") ? resourcePath.substring(1) : resourcePath;
-        InputStream source = Thread.currentThread().getContextClassLoader().getResourceAsStream(cleanedPath);
-        if (source == null) {
-            java.io.File file = new java.io.File(resourcePath);
-            if (!file.exists()) throw new IOException("Archivo no encontrado en recursos ni en disco: " + resourcePath);
-            source = new java.io.FileInputStream(file);
+
+        if (!Files.exists(path)) {
+            throw new IOException("Archivo no encontrado: " + path);
         }
-        try (ReadableByteChannel rbc = Channels.newChannel(source)) {
+
+        try (InputStream source = Files.newInputStream(path);
+             ReadableByteChannel rbc = Channels.newChannel(source)) {
+
             buffer = BufferUtils.createByteBuffer(1024 * 1024);
 
             while (true) {
                 int bytes = rbc.read(buffer);
                 if (bytes == -1) break;
+
                 if (buffer.remaining() == 0) {
                     ByteBuffer newBuffer = BufferUtils.createByteBuffer(buffer.capacity() * 2);
                     buffer.flip();
@@ -74,6 +86,7 @@ public class OggDecoder {
                 }
             }
         }
+
         buffer.flip();
         return buffer;
     }

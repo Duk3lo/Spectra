@@ -16,7 +16,7 @@ public final class Reload extends CommandBase {
 
     @Override
     protected void executeSync(@NotNull CommandContext commandContext) {
+        instance.getLogger().atInfo().log("Reloading Configurations...");
         instance.reloadConfig();
-        instance.getLogger().atInfo().log("Reloading Configurations!");
     }
 }

@@ -67,4 +67,8 @@ public final class SpectylePlugin extends JavaPlugin {
     public AudioEngine getAudioEngine() {
         return engine;
     }
+
+    public AudioConfig getAudioConfig(){
+        return config;
+    }
 }

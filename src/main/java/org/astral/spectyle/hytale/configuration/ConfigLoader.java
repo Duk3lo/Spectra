@@ -3,8 +3,10 @@ package org.astral.spectyle.hytale.configuration;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.util.Config;
 import org.astral.spectyle.hytale.to_asset.AssetPackBuilder;
+import org.astral.spectyle.hytale.to_asset.SoundEventJson;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -109,6 +111,10 @@ public final class ConfigLoader {
                     .withCause(e)
                     .log("No se pudo inicializar carpetas");
         }
+    }
+
+    public static SoundEventJson getSoundEventJson(String soundEventId) throws IOException {
+        return getAssetPack().readSoundEventJson(soundEventId);
     }
 
     public static Path getSoundPath() {

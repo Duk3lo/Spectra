@@ -11,12 +11,14 @@ import org.astral.spectyle.audio.state.AudioBuffer;
 import org.astral.spectyle.audio.detection.BeatDetector;
 import org.astral.spectyle.logging.EngineLogger;
 
+import java.nio.file.Path;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import static org.lwjgl.openal.AL10.AL_PAUSED;
 import static org.lwjgl.openal.AL10.AL_PLAYING;
@@ -130,6 +132,14 @@ public class AudioEngine {
     }
 
     public void playSong(String path, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
+        schedulePlayback(() -> OggDecoder.loadAudio(path), onPlaybackStart, delayTime, timeUnit);
+    }
+
+    public void playSong(Path path, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
+        schedulePlayback(() -> OggDecoder.loadAudio(path), onPlaybackStart, delayTime, timeUnit);
+    }
+
+    private void schedulePlayback(Supplier<AudioBuffer> loader, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
         if (executor == null) {
             throw new IllegalStateException("Engine not started. Call start() first.");
         }
@@ -140,7 +150,7 @@ public class AudioEngine {
 
                 player.cleanup();
 
-                currentBuffer = OggDecoder.loadAudio(path);
+                currentBuffer = loader.get();
                 player.load(currentBuffer, config.getGeneral().getCurrentVolume());
 
                 beatDetector = new BeatDetector(config, logger);
