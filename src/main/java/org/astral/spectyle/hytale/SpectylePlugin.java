@@ -57,7 +57,7 @@ public final class SpectylePlugin extends JavaPlugin {
         AudioConfig newConfig = audioConfigFile.load().join();
         this.config = newConfig;
         engine.reloadConfiguration(newConfig);
-        getLogger().atInfo().log("Configuración recargada");
+        getLogger().atInfo().log("Reloading Success!");
     }
 
     public static SpectylePlugin getInstance(){
