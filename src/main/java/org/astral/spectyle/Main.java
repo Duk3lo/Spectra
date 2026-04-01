@@ -37,7 +37,7 @@ public class Main {
             frame.setVisible(true);
         });
 
-        engine.playResource(finalAudio, () -> logger.info("\u001B[32m[Main] Reproducción iniciada\u001B[0m"), config.getGeneral().getDelayedTaskInMs(), TimeUnit.MILLISECONDS);
+        engine.playResource(finalAudio, () -> logger.info("\u001B[32m[Main] Local Playing\u001B[0m"), config.getGeneral().getDelayedTaskInMs(), TimeUnit.MILLISECONDS);
 
         engine.waitForExit();
     }

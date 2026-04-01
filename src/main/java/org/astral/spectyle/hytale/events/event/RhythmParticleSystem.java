@@ -1,0 +1,55 @@
+package org.astral.spectyle.hytale.events.event;
+
+import com.hypixel.hytale.component.ArchetypeChunk;
+import com.hypixel.hytale.component.CommandBuffer;
+import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.component.query.Query;
+import com.hypixel.hytale.component.system.tick.DelayedEntitySystem;
+import com.hypixel.hytale.math.vector.Vector3d;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import org.astral.spectyle.audio.api.AudioAPI;
+import org.astral.spectyle.hytale.events.event.world.Particles;
+import org.jetbrains.annotations.NotNull;
+
+public final class RhythmParticleSystem extends DelayedEntitySystem<EntityStore> {
+
+    public RhythmParticleSystem() {
+        super(0.5f);
+    }
+
+    @Override
+    public void tick(float v, int i,
+                     @NotNull ArchetypeChunk<EntityStore> archetypeChunk,
+                     @NotNull Store<EntityStore> store,
+                     @NotNull CommandBuffer<EntityStore> commandBuffer) {
+
+        if (AudioAPI.isPaused()) return;
+        if (!AudioAPI.isPlaying()) return;
+        if (!AudioAPI.popBassEvent()) return;
+
+        Ref<EntityStore> ref = archetypeChunk.getReferenceTo(i);
+        PlayerRef playerRef = store.getComponent(ref, PlayerRef.getComponentType());
+        if (playerRef == null) return;
+
+        Vector3d position = playerRef.getTransform().getPosition();
+
+        Vector3d particlePos = new Vector3d(
+                position.getX(),
+                position.getY() + 1.2,
+                position.getZ()
+        );
+
+        Particles.spawnRhythm(
+                "Block_Break_Sand",
+                particlePos,
+                store
+        );
+    }
+
+    @Override
+    public @NotNull Query<EntityStore> getQuery() {
+        return PlayerRef.getComponentType();
+    }
+}

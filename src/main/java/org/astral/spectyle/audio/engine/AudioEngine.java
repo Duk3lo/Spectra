@@ -288,6 +288,7 @@ public class AudioEngine {
         synchronized (engineLock) {
             player.stop();
             AudioAPI.setPlaying(false);
+            AudioAPI.setPaused(true);
         }
     }
 

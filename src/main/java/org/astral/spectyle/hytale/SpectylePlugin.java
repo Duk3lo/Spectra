@@ -8,6 +8,7 @@ import org.astral.spectyle.config.AudioConfig;
 import org.astral.spectyle.hytale.commands.SpectyleCommands;
 import org.astral.spectyle.hytale.configuration.AudioConfigAdapter;
 import org.astral.spectyle.hytale.configuration.ConfigLoader;
+import org.astral.spectyle.hytale.events.SpectyleEvents;
 import org.astral.spectyle.hytale.loggin.PluginLogger;
 import org.astral.spectyle.web.WebVisualizer;
 import org.jetbrains.annotations.NotNull;
@@ -36,14 +37,15 @@ public final class SpectylePlugin extends JavaPlugin {
         ConfigLoader.loadAll();
         config = audioConfigFile.load().join();
         engine = new AudioEngine(config, pluginLogger);
-
         engine.setWebVisualizer(webVisualizer);
         webVisualizer.setVolumeCallback(engine::setVolume);
         webVisualizer.start();
         webVisualizer.waitForConnection();
         engine.start();
-        getLogger().atInfo().log("Engine Started");
         getCommandRegistry().registerCommand(new SpectyleCommands(command, "Using for Audios Analyzer"));
+        SpectyleEvents.RegisterAll();
+        getLogger().atInfo().log("Engine Started");
+
     }
 
     @Override

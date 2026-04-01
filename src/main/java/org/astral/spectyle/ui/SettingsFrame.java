@@ -1,5 +1,6 @@
 package org.astral.spectyle.ui;
 
+import org.astral.spectyle.audio.api.AudioAPI;
 import org.astral.spectyle.audio.engine.AudioEngine;
 import org.astral.spectyle.config.AudioConfig;
 import org.jetbrains.annotations.NotNull;
@@ -92,7 +93,7 @@ public final class SettingsFrame extends JDialog {
             @Override
             protected JButton createIncreaseButton(int orientation) { return createZeroButton(); }
 
-            private JButton createZeroButton() {
+            private @NotNull JButton createZeroButton() {
                 JButton jbutton = new JButton();
                 jbutton.setPreferredSize(new Dimension(0, 0));
                 jbutton.setMinimumSize(new Dimension(0, 0));
@@ -113,7 +114,7 @@ public final class SettingsFrame extends JDialog {
 
         btnApply.addActionListener(e -> {
             AudioConfig newConfig = new AudioConfig();
-            newConfig.getGeneral().setCurrentVolume(currentConfig.getGeneral().getCurrentVolume());
+            newConfig.getGeneral().setCurrentVolume(AudioAPI.getVolume());
             newConfig.getGeneral().setUpdateRateMs(currentConfig.getGeneral().getUpdateRateMs());
 
             Integer selected = (Integer) fftCombo.getSelectedItem();
