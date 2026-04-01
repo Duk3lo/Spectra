@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 public class Main {
 
-    private static final String finalAudio = "musics/Bang.ogg";
+    private static final String finalAudio = "musics/mind.ogg";
     private static final EngineLogger logger = new ConsoleLogger();
     private static final WebVisualizer webVisualizer =
             new WebVisualizer("OpenAL (AudioSpectrum)", 8080, logger);
@@ -21,10 +21,9 @@ public class Main {
         AudioConfig config = new AudioConfig();
         AudioEngine engine = new AudioEngine(config, logger);
 
-        logger.info("\u001B[35m[Main] Iniciando Motor de Audio\u001B[0m");
+        logger.info("\u001B[35m[Main] Starting Audio Engine\u001B[0m");
 
         engine.setWebVisualizer(webVisualizer);
-
         webVisualizer.setVolumeCallback(engine::setVolume);
 
         webVisualizer.start();
@@ -33,7 +32,7 @@ public class Main {
         engine.start();
 
         SwingUtilities.invokeLater(() -> {
-            AudioControlFrame frame = new AudioControlFrame(engine);
+            AudioControlFrame frame = new AudioControlFrame(engine, logger);
             frame.setVisible(true);
         });
 

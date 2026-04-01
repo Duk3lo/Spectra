@@ -32,7 +32,7 @@ let barElements = [];
 let currentNumBars = 0;
 let volTimeout = null;
 
-/* AGREGADO: bloqueo real mientras el usuario arrastra */
+/* ADDED: Lock state while user is dragging the volume slider */
 let isUserDraggingVol = false;
 
 if (DOM.slider) {
@@ -65,7 +65,7 @@ if (DOM.slider && DOM.volLabel) {
 
         clearTimeout(volTimeout);
         volTimeout = setTimeout(() => {
-            fetch('/volume?level=' + val).catch(err => console.warn("Error enviando volumen:", err));
+            fetch('/volume?level=' + val).catch(err => console.warn("Error sending volume:", err));
         }, CONFIG.throttleMs);
     };
 }
@@ -79,10 +79,16 @@ function formatTime(secs) {
 
 function rebuildVisualizer(numBars) {
     if (!DOM.container) return;
-    console.log("Reconstruyendo visualizador para " + numBars + " barras.");
+    console.log("Rebuilding visualizer for " + numBars + " bars.");
 
     DOM.container.innerHTML = '';
     barElements = [];
+
+    if (numBars > 32) {
+        DOM.container.classList.add('dense');
+    } else {
+        DOM.container.classList.remove('dense');
+    }
 
     const fragment = document.createDocumentFragment();
 
@@ -93,12 +99,16 @@ function rebuildVisualizer(numBars) {
         let bar = document.createElement('div');
         bar.className = 'bar';
 
-        let lbl = document.createElement('div');
-        lbl.className = 'label';
-        lbl.innerText = String(i + 1);
+        if (numBars <= 32) {
+            let lbl = document.createElement('div');
+            lbl.className = 'label';
+            lbl.innerText = String(i + 1);
+            wrap.appendChild(bar);
+            wrap.appendChild(lbl);
+        } else {
+            wrap.appendChild(bar);
+        }
 
-        wrap.appendChild(bar);
-        wrap.appendChild(lbl);
         fragment.appendChild(wrap);
         barElements.push(bar);
     }
@@ -127,7 +137,7 @@ source.onmessage = function(event) {
         const data = JSON.parse(event.data);
 
         if (data.type === 'volume_change') {
-            /* AGREGADO: no sobrescribir mientras el usuario está moviendo */
+            /* ADDED: Do not overwrite volume while user is dragging */
             if (DOM.slider && !isUserDraggingVol) {
                 DOM.slider.value = data.value;
                 DOM.volLabel.innerText = Math.round(Number(data.value) * 100) + '%';
@@ -141,9 +151,10 @@ source.onmessage = function(event) {
         }
 
         if (DOM.status) {
-            DOM.status.innerText = data.paused ? '⏸ EN PAUSA' : '▶ REPRODUCIENDO';
+            DOM.status.innerText = data.paused ? '⏸ PAUSED' : '▶ PLAYING';
             DOM.status.style.color = data.paused ? '#ff3366' : '#00ffcc';
         }
+
         if (DOM.energyVal) DOM.energyVal.innerText = Math.round(data.energy * 100) + '%';
         if (DOM.comboVal) DOM.comboVal.innerText = data.combo + 'x';
         if (DOM.speedVal) DOM.speedVal.innerText = data.speed.toFixed(2) + 'x';
@@ -206,6 +217,6 @@ source.onmessage = function(event) {
         }
 
     } catch (e) {
-        console.error("Error procesando actualización del servidor:", e);
+        console.error("Error processing server update:", e);
     }
 };

@@ -30,6 +30,8 @@ public final class WebVisualizer {
     private final EngineLogger logger;
     private volatile float lastBroadcastVolume = -1f;
 
+    private String currentUrl = "http://localhost:8080";
+
     private VolumeCallback volumeCallback;
 
     private final CountDownLatch clientConnectedLatch = new CountDownLatch(1);
@@ -46,6 +48,10 @@ public final class WebVisualizer {
 
     public void setVolumeCallback(VolumeCallback callback) {
         this.volumeCallback = callback;
+    }
+
+    public String getUrl() {
+        return currentUrl;
     }
 
     public void start() {
@@ -71,10 +77,10 @@ public final class WebVisualizer {
             server.setExecutor(null);
             server.start();
 
-            String url = "http://localhost:" + port;
-            logger.info("\u001B[32m[" + engineName + "] Web server started at " + url + "\u001B[0m");
+            currentUrl = "http://localhost:" + port;
+            logger.info("\u001B[32m[" + engineName + "] Web server started at " + currentUrl + "\u001B[0m");
 
-            abrirNavegador(url);
+            abrirNavegador(currentUrl);
 
         } catch (Exception e) {
             logger.error("Error loading web server: " + e.getMessage(), e);

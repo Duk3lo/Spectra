@@ -89,39 +89,30 @@ public class AudioEngine {
 
     public void reloadConfiguration(AudioConfig newConfig) {
         Objects.requireNonNull(newConfig, "newConfig");
-
         logger.info("\u001B[36m[AudioEngine] Applying new configuration live...\u001B[0m");
 
-        synchronized (engineLock) {
-            boolean rebuildAnalysis =
-                    (config.getVisualizer().getFftSize() != newConfig.getVisualizer().getFftSize()) ||
-                            (config.getVisualizer().getNumBars() != newConfig.getVisualizer().getNumBars());
+        executor.execute(() -> {
+            synchronized (engineLock) {
+                this.config = newConfig;
 
-            boolean restartLoop = (config.getGeneral().getUpdateRateMs() != newConfig.getGeneral().getUpdateRateMs());
+                setVolume(config.getGeneral().getCurrentVolume());
 
-            this.config = newConfig;
-
-            setVolume(config.getGeneral().getCurrentVolume());
-
-            if (rebuildAnalysis) {
                 this.analyzer = new SpectrumAnalyzer(config);
-                if (currentBuffer != null) {
-                    this.beatDetector = new BeatDetector(config, logger);
-                    this.beatDetector.preScan(currentBuffer, analyzer);
-                }
-            }
-
-            if (!rebuildAnalysis && beatDetector != null) {
                 this.beatDetector = new BeatDetector(config, logger);
+
                 if (currentBuffer != null) {
-                    this.beatDetector.preScan(currentBuffer, analyzer);
+                    try {
+                        beatDetector.preScan(currentBuffer, analyzer);
+                    } catch (Exception e) {
+                        logger.error("Error during pre Scan in reload Configuration", e);
+                    }
+                }
+
+                if (engineRunning) {
+                    startProcessingTask();
                 }
             }
-
-            if (restartLoop && engineRunning) {
-                startProcessingTask();
-            }
-        }
+        });
     }
 
     public void playSong(Path path, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
@@ -154,7 +145,6 @@ public class AudioEngine {
                 currentBuffer = loader.get();
                 player.load(currentBuffer, config.getGeneral().getCurrentVolume());
 
-                // Aplicar el tiempo de inicio antes de dar Play
                 if (startTimeMs > 0) {
                     float seconds = startTimeMs / 1000.0f;
                     player.setOffsetSeconds(seconds);
@@ -188,64 +178,74 @@ public class AudioEngine {
     private void processAudioFrame() {
         if (!engineRunning) return;
 
-        synchronized (engineLock) {
-            if (currentBuffer == null || beatDetector == null || analyzer == null) return;
+        try {
+            float[] bars;
+            float[] intensities;
+            java.util.Map<String, Float> features;
+            float energy;
+            int combo;
+            float speed;
+            boolean paused;
+            float offset;
+            float duration;
 
-            int state = player.getState();
-            float offset = player.getOffsetSeconds();
-            float duration = currentBuffer.durationSeconds();
+            synchronized (engineLock) {
+                if (currentBuffer == null || beatDetector == null || analyzer == null) return;
 
-            AudioAPI.setCurrentPositionSeconds(offset);
-            AudioAPI.setTotalDurationSeconds(duration);
+                int state = player.getState();
+                offset = player.getOffsetSeconds();
+                duration = currentBuffer.durationSeconds();
 
-            if (state == AL_PLAYING) {
-                AudioAPI.setPaused(false);
-                AudioAPI.setPlaying(true);
+                AudioAPI.setCurrentPositionSeconds(offset);
+                AudioAPI.setTotalDurationSeconds(duration);
 
-                int currentSampleIdx = (int) (offset * currentBuffer.sampleRate()) * currentBuffer.channels();
-                int fftSize = config.getVisualizer().getFftSize();
+                if (state == AL_PLAYING) {
+                    AudioAPI.setPaused(false);
+                    AudioAPI.setPlaying(true);
 
-                if (currentSampleIdx >= 0 &&
-                        currentSampleIdx + (fftSize * currentBuffer.channels()) < currentBuffer.pcmData().capacity()) {
+                    int currentSampleIdx = (int) (offset * currentBuffer.sampleRate()) * currentBuffer.channels();
+                    int fftSize = config.getVisualizer().getFftSize();
 
-                    float[] samples = analyzer.extractSamples(currentBuffer, currentSampleIdx);
-                    float[] currentFrame = analyzer.computeFFT(samples);
+                    if (currentSampleIdx >= 0 &&
+                            currentSampleIdx + (fftSize * currentBuffer.channels()) < currentBuffer.pcmData().capacity()) {
 
-                    beatDetector.processFrame(currentFrame, System.currentTimeMillis());
+                        float[] samples = analyzer.extractSamples(currentBuffer, currentSampleIdx);
+                        float[] currentFrame = analyzer.computeFFT(samples);
+
+                        beatDetector.processFrame(currentFrame, System.currentTimeMillis());
+                    }
+                    paused = false;
+
+                } else {
+                    AudioAPI.setPaused(state == AL_PAUSED);
+                    AudioAPI.setPlaying(false);
+                    paused = true;
+                    int numBars = config.getVisualizer().getNumBars();
+                    float[] emptyFrame = new float[numBars];
+                    beatDetector.processFrame(emptyFrame, System.currentTimeMillis());
                 }
+                bars = beatDetector.getSmoothedBars();
+                intensities = beatDetector.getBeatIntensity();
 
-                if (webVisualizer != null) {
-                    webVisualizer.update(
-                            beatDetector.getSmoothedBars(),
-                            beatDetector.getBeatIntensity(),
-                            beatDetector.getReactiveSignals(),
-                            AudioAPI.getGlobalEnergy(),
-                            AudioAPI.getHitCombo(),
-                            AudioAPI.getParticleSpeedMultiplier(),
-                            false,
-                            offset,
-                            duration
-                    );
-                }
+                java.util.Map<String, Float> rawFeatures = beatDetector.getReactiveSignals();
+                features = (rawFeatures != null)
+                        ? new java.util.LinkedHashMap<>(rawFeatures)
+                        : new java.util.LinkedHashMap<>();
 
-            } else {
-                AudioAPI.setPaused(state == AL_PAUSED);
-                AudioAPI.setPlaying(false);
-
-                if (webVisualizer != null) {
-                    webVisualizer.update(
-                            beatDetector.getSmoothedBars(),
-                            beatDetector.getBeatIntensity(),
-                            beatDetector.getReactiveSignals(),
-                            AudioAPI.getGlobalEnergy(),
-                            AudioAPI.getHitCombo(),
-                            AudioAPI.getParticleSpeedMultiplier(),
-                            true,
-                            offset,
-                            duration
-                    );
-                }
+                energy = AudioAPI.getGlobalEnergy();
+                combo = AudioAPI.getHitCombo();
+                speed = AudioAPI.getParticleSpeedMultiplier();
             }
+            if (webVisualizer != null) {
+                webVisualizer.update(
+                        bars, intensities, features, energy,
+                        combo, speed, paused, offset, duration
+                );
+            }
+
+        } catch (Throwable t) {
+            assert t instanceof Exception;
+            logger.error("\u001B[31m[AudioEngine] Error processing frame: " + t.getMessage() + "\u001B[0m", t);
         }
     }
 
@@ -320,5 +320,13 @@ public class AudioEngine {
                 exitLatch.countDown();
             }
         }
+    }
+
+    public AudioConfig getConfig() {
+        return this.config;
+    }
+
+    public WebVisualizer getWebVisualizer(){
+        return webVisualizer;
     }
 }
