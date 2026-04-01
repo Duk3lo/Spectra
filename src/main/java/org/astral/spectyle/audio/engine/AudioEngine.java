@@ -20,8 +20,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-import static org.lwjgl.openal.AL10.AL_PAUSED;
-import static org.lwjgl.openal.AL10.AL_PLAYING;
+import static org.lwjgl.openal.AL10.*;
 
 public class AudioEngine {
 
@@ -196,6 +195,13 @@ public class AudioEngine {
                 offset = player.getOffsetSeconds();
                 duration = currentBuffer.durationSeconds();
 
+                if (state == AL_STOPPED && offset >= duration - 0.1f) {
+                    logger.info("Song finished. Clearing memory...");
+                    currentBuffer = null;
+                    AudioAPI.reset();
+                    return;
+                }
+
                 AudioAPI.setCurrentPositionSeconds(offset);
                 AudioAPI.setTotalDurationSeconds(duration);
 
@@ -326,7 +332,4 @@ public class AudioEngine {
         return this.config;
     }
 
-    public WebVisualizer getWebVisualizer(){
-        return webVisualizer;
-    }
 }

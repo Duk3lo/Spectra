@@ -28,6 +28,7 @@ public class Main {
 
         webVisualizer.start();
         webVisualizer.waitForConnection();
+        AudioControlFrame.setDefaultWebUrl(webVisualizer.getUrl());
 
         engine.start();
 

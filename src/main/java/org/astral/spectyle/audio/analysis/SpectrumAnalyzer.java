@@ -11,11 +11,14 @@ public class SpectrumAnalyzer {
     private int[] boundaries;
     private final AudioConfig config;
 
+    private float[] samplesBuffer;
+    private float[] magnitudesBuffer;
+    private float[] barsBuffer;
+
     public SpectrumAnalyzer(@NotNull AudioConfig config) {
         this.config = config;
         rebuild();
     }
-
 
     public void rebuild() {
         int fftSize = config.getVisualizer().getFftSize();
@@ -23,6 +26,10 @@ public class SpectrumAnalyzer {
 
         this.fft = new FloatFFT_1D(fftSize);
         this.boundaries = computeBoundaries(fftSize, numBars);
+
+        this.samplesBuffer = new float[fftSize];
+        this.magnitudesBuffer = new float[fftSize / 2];
+        this.barsBuffer = new float[numBars];
     }
 
     private int @NotNull [] computeBoundaries(int fftSize, int numBars) {
@@ -53,32 +60,29 @@ public class SpectrumAnalyzer {
         int fftSize = config.getVisualizer().getFftSize();
         int channels = buffer.channels();
 
-        float[] samples = new float[fftSize];
-
         for (int j = 0; j < fftSize; j++) {
             int idx = startIdx + (j * channels);
 
-            float s = (channels == 2)
-                    ? (buffer.pcmData().get(idx) + buffer.pcmData().get(idx + 1)) / 65536f
-                    : buffer.pcmData().get(idx) / 32768f;
-
-            samples[j] = s;
+            if (idx + (channels - 1) < buffer.pcmData().capacity()) {
+                float s = (channels == 2)
+                        ? (buffer.pcmData().get(idx) + buffer.pcmData().get(idx + 1)) / 65536f
+                        : buffer.pcmData().get(idx) / 32768f;
+                samplesBuffer[j] = s;
+            } else {
+                samplesBuffer[j] = 0;
+            }
         }
 
-        return WindowFunction.applyHanning(samples);
+        return WindowFunction.applyHanning(samplesBuffer);
     }
 
     public float[] computeFFT(float[] windowedSamples) {
-
         int fftSize = config.getVisualizer().getFftSize();
-
         int numBars = boundaries.length - 1;
 
         fft.realForward(windowedSamples);
 
-        float[] magnitudes = new float[fftSize / 2];
-        magnitudes[0] = Math.abs(windowedSamples[0]);
-
+        magnitudesBuffer[0] = Math.abs(windowedSamples[0]);
         for (int k = 1; k < fftSize / 2; k++) {
             int reIndex = 2 * k;
             int imIndex = 2 * k + 1;
@@ -88,26 +92,22 @@ public class SpectrumAnalyzer {
             float re = windowedSamples[reIndex];
             float im = windowedSamples[imIndex];
 
-            magnitudes[k] = (float) Math.sqrt(re * re + im * im);
+            magnitudesBuffer[k] = (float) Math.sqrt(re * re + im * im);
         }
-
-        float[] bars = new float[numBars];
 
         for (int i = 0; i < numBars; i++) {
-
-            int start = clamp(boundaries[i], 0, magnitudes.length - 1);
-            int end = clamp(boundaries[i + 1], start + 1, magnitudes.length);
+            int start = clamp(boundaries[i], 0, magnitudesBuffer.length - 1);
+            int end = clamp(boundaries[i + 1], start + 1, magnitudesBuffer.length);
 
             float sum = 0;
-
             for (int j = start; j < end; j++) {
-                sum += magnitudes[j];
+                sum += magnitudesBuffer[j];
             }
 
-            bars[i] = sum / Math.max(1, (end - start));
+            barsBuffer[i] = sum / Math.max(1, (end - start));
         }
 
-        return bars;
+        return barsBuffer;
     }
 
     private int clamp(int v, int min, int max) {

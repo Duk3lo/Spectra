@@ -27,7 +27,11 @@ public final class AudioControlFrame extends JFrame {
     private static final Color ACCENT = new Color(255, 51, 102);
     private static final Color ACCENT_2 = new Color(0, 255, 204);
 
-    private static final String DEFAULT_WEB_URL = "http://localhost:8080";
+    private static String DEFAULT_WEB_URL = "http://localhost:8080";
+    
+    public static void setDefaultWebUrl(String url){
+        DEFAULT_WEB_URL = url;
+    }
 
     private final AudioEngine engine;
     private final EngineLogger logger;
