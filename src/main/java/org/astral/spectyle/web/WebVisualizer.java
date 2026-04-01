@@ -28,6 +28,7 @@ public final class WebVisualizer {
     private final String engineName;
     private final int startPort;
     private final EngineLogger logger;
+    private volatile float lastBroadcastVolume = -1f;
 
     private VolumeCallback volumeCallback;
 
@@ -111,9 +112,18 @@ public final class WebVisualizer {
     }
 
     public void sendVolumeUpdate(float volume) {
-        if (clients.isEmpty() || server == null) return;
-        String msg = "data: {\"type\":\"volume_change\", \"value\":" + String.format(Locale.US, "%.2f", volume) + "}\n\n";
-        byte[] bytes = msg.getBytes(StandardCharsets.UTF_8);
+        if (server == null || clients.isEmpty()) return;
+
+        float v = Math.clamp(volume, 0.0f, 1.0f);
+        if (Math.abs(v - lastBroadcastVolume) < 0.001f) return;
+
+        lastBroadcastVolume = v;
+
+        String msg = "{\"type\":\"volume_change\", \"value\":" +
+                String.format(Locale.US, "%.2f", v) + "}";
+
+        byte[] bytes = ("data: " + msg + "\n\n").getBytes(StandardCharsets.UTF_8);
+
         clients.removeIf(os -> {
             try {
                 os.write(bytes);

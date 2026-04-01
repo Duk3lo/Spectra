@@ -27,6 +27,7 @@ dependencies {
     implementation("org.lwjgl:lwjgl")
     implementation("org.lwjgl:lwjgl-openal")
     implementation("org.lwjgl:lwjgl-stb")
+    implementation("javazoom:jlayer:1.0.1")
 
     listOf(
         "natives-windows",

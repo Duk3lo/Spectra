@@ -28,14 +28,39 @@ const DOM = {
     timeText: document.getElementById('time-text')
 };
 
-let barElements =[];
+let barElements = [];
 let currentNumBars = 0;
 let volTimeout = null;
+
+/* AGREGADO: bloqueo real mientras el usuario arrastra */
+let isUserDraggingVol = false;
+
+if (DOM.slider) {
+    DOM.slider.addEventListener('pointerdown', () => {
+        isUserDraggingVol = true;
+    });
+
+    DOM.slider.addEventListener('pointerup', () => {
+        isUserDraggingVol = false;
+    });
+
+    DOM.slider.addEventListener('touchstart', () => {
+        isUserDraggingVol = true;
+    }, { passive: true });
+
+    DOM.slider.addEventListener('touchend', () => {
+        isUserDraggingVol = false;
+    }, { passive: true });
+
+    DOM.slider.addEventListener('blur', () => {
+        isUserDraggingVol = false;
+    });
+}
 
 if (DOM.slider && DOM.volLabel) {
     DOM.slider.oninput = function() {
         const val = this.value;
-        // Actualizamos la UI inmediatamente
+
         DOM.volLabel.innerText = Math.round(Number(val) * 100) + '%';
 
         clearTimeout(volTimeout);
@@ -57,7 +82,7 @@ function rebuildVisualizer(numBars) {
     console.log("Reconstruyendo visualizador para " + numBars + " barras.");
 
     DOM.container.innerHTML = '';
-    barElements =[];
+    barElements = [];
 
     const fragment = document.createDocumentFragment();
 
@@ -100,8 +125,10 @@ source.onmessage = function(event) {
          * }}
          */
         const data = JSON.parse(event.data);
+
         if (data.type === 'volume_change') {
-            if (DOM.slider && document.activeElement !== DOM.slider) {
+            /* AGREGADO: no sobrescribir mientras el usuario está moviendo */
+            if (DOM.slider && !isUserDraggingVol) {
                 DOM.slider.value = data.value;
                 DOM.volLabel.innerText = Math.round(Number(data.value) * 100) + '%';
             }

@@ -38,6 +38,11 @@ public final class Play extends CommandBase {
 
     @Override
     protected void executeSync(@NotNull CommandContext ctx) {
+        int players = Universe.get().getPlayerCount();
+        if (players <= 0) {
+            ctx.sendMessage(Message.raw("There are no players in the world to reproduce"));
+            return;
+        }
         if (AudioAPI.isPlaying()){
             ctx.sendMessage(Message.raw("The engine is already Playing"));
             return;

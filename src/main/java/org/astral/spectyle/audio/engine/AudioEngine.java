@@ -4,7 +4,7 @@ import org.astral.spectyle.web.WebVisualizer;
 import org.astral.spectyle.audio.api.AudioAPI;
 import org.astral.spectyle.audio.analysis.SpectrumAnalyzer;
 import org.astral.spectyle.config.AudioConfig;
-import org.astral.spectyle.audio.decode.OggDecoder;
+import org.astral.spectyle.audio.decode.AudioDecoder;
 import org.astral.spectyle.audio.playback.OpenALContext;
 import org.astral.spectyle.audio.playback.OpenALPlayer;
 import org.astral.spectyle.audio.state.AudioBuffer;
@@ -67,10 +67,7 @@ public class AudioEngine {
             executor = Executors.newScheduledThreadPool(2);
             engineRunning = true;
 
-            if (webVisualizer != null) {
-                webVisualizer.sendVolumeUpdate(config.getGeneral().getCurrentVolume());
-            }
-
+            setVolume(config.getGeneral().getCurrentVolume());
             startProcessingTask();
         }
     }
@@ -106,10 +103,6 @@ public class AudioEngine {
 
             setVolume(config.getGeneral().getCurrentVolume());
 
-            if (webVisualizer != null) {
-                webVisualizer.sendVolumeUpdate(config.getGeneral().getCurrentVolume());
-            }
-
             if (rebuildAnalysis) {
                 this.analyzer = new SpectrumAnalyzer(config);
                 if (currentBuffer != null) {
@@ -131,14 +124,12 @@ public class AudioEngine {
         }
     }
 
-    // --- MÉTODOS DE REPRODUCCIÓN ACTUALIZADOS ---
-
     public void playSong(Path path, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
         playSong(path, 0, onPlaybackStart, delayTime, timeUnit);
     }
 
     public void playSong(Path path, long startTimeMs, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
-        schedulePlayback(() -> OggDecoder.loadAudio(path), startTimeMs, onPlaybackStart, delayTime, timeUnit);
+        schedulePlayback(() -> AudioDecoder.loadAudio(path), startTimeMs, onPlaybackStart, delayTime, timeUnit);
     }
 
     public void playResource(String resourcePath, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
@@ -146,7 +137,7 @@ public class AudioEngine {
     }
 
     public void playResource(String resourcePath, long startTimeMs, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
-        schedulePlayback(() -> OggDecoder.loadResource(resourcePath), startTimeMs, onPlaybackStart, delayTime, timeUnit);
+        schedulePlayback(() -> AudioDecoder.loadResource(resourcePath), startTimeMs, onPlaybackStart, delayTime, timeUnit);
     }
 
     private void schedulePlayback(Supplier<AudioBuffer> loader, long startTimeMs, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
@@ -186,15 +177,13 @@ public class AudioEngine {
         synchronized (engineLock) {
             if (currentBuffer != null && engineRunning) {
                 float targetSeconds = timeMs / 1000.0f;
-                // Validar que no nos salgamos del audio
-                targetSeconds = Math.clamp(targetSeconds, 0, currentBuffer.durationSeconds());
+                targetSeconds = Math.clamp(targetSeconds, 0.0f, currentBuffer.durationSeconds());
                 player.setOffsetSeconds(targetSeconds);
+                AudioAPI.setCurrentPositionSeconds(targetSeconds);
                 logger.info("Seeked to: " + targetSeconds + "s");
             }
         }
     }
-
-    // --- FIN DE MÉTODOS DE REPRODUCCIÓN ---
 
     private void processAudioFrame() {
         if (!engineRunning) return;
@@ -261,9 +250,15 @@ public class AudioEngine {
     }
 
     public void setVolume(float volume) {
+        float v = Math.clamp(volume, 0.0f, 1.0f);
+
         synchronized (engineLock) {
-            player.setVolume(volume);
-            AudioAPI.setVolume(volume);
+            player.setVolume(v);
+            AudioAPI.setVolume(v);
+        }
+
+        if (webVisualizer != null) {
+            webVisualizer.sendVolumeUpdate(v);
         }
     }
 
