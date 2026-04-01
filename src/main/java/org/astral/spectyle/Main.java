@@ -26,10 +26,10 @@ public class Main {
         webVisualizer.waitForConnection();
         engine.start();
 
-        engine.playSong(finalAudio, () -> {
+        engine.playResource(finalAudio, () -> {
             logger.info("\u001B[32m[Main] OpenAL ha comenzado la reproducción nativa con éxito.\u001B[0m");
             logger.info("Accion para otra cosa");
-        }, config.getGeneral().getDelayedTaskInMs(), TimeUnit.MILLISECONDS);
+        }, 227, TimeUnit.MILLISECONDS);
 
         engine.waitForExit();
     }

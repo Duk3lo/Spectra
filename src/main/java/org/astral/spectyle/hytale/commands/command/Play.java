@@ -1,19 +1,17 @@
 package org.astral.spectyle.hytale.commands.command;
 
-import com.hypixel.hytale.component.Ref;
-import com.hypixel.hytale.component.Store;
+
 import com.hypixel.hytale.protocol.SoundCategory;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.asset.type.soundevent.config.SoundEvent;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
-import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
+import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.SoundUtil;
-import com.hypixel.hytale.server.core.universe.world.World;
-import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import org.astral.spectyle.audio.api.AudioAPI;
 import org.astral.spectyle.audio.engine.AudioEngine;
 import org.astral.spectyle.config.AudioConfig;
 import org.astral.spectyle.hytale.SpectylePlugin;
@@ -26,7 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
-public final class Play extends AbstractPlayerCommand {
+public final class Play extends CommandBase {
 
     private final RequiredArg<String> sound = withRequiredArg("sound", "play sound Example: play Sound_Name", ArgTypes.STRING);
     private final SpectylePlugin plugin = SpectylePlugin.getInstance();
@@ -39,23 +37,27 @@ public final class Play extends AbstractPlayerCommand {
     }
 
     @Override
-    protected void execute(@NotNull CommandContext commandContext, @NotNull Store<EntityStore> store, @NotNull Ref<EntityStore> ref, @NotNull PlayerRef playerRef, @NotNull World world) {
-        String name = sound.get(commandContext);
+    protected void executeSync(@NotNull CommandContext ctx) {
+        if (AudioAPI.isPlaying()){
+            ctx.sendMessage(Message.raw("The engine is already Playing"));
+            return;
+        }
+        String name = sound.get(ctx);
         if (name == null || name.isBlank()) {
-            commandContext.sendMessage(Message.raw("Not specified..."));
+            ctx.sendMessage(Message.raw("Not specified..."));
             return;
         }
         int index = SoundEvent.getAssetMap().getIndex(name);
         if (index < 0) {
-            commandContext.sendMessage(Message.raw("Sound " + name + " not Found in server"));
+            ctx.sendMessage(Message.raw("Sound " + name + " not Found in server"));
             return;
         }
         try {
             SoundEventJson json = ConfigLoader.getSoundEventJson(name);
             Path audioPath = Path.of(json.absolutePath());
-            commandContext.sendMessage(Message.raw(audioPath.toString()));
+            ctx.sendMessage(Message.raw(audioPath.toString()));
             if (!Files.exists(audioPath)) {
-                commandContext.sendMessage(Message.raw("Audio file not found: " + audioPath));
+                ctx.sendMessage(Message.raw("Audio file not found: " + audioPath));
                 return;
             }
 
@@ -66,7 +68,7 @@ public final class Play extends AbstractPlayerCommand {
             }, config.getGeneral().getDelayedTaskInMs(), TimeUnit.MILLISECONDS);
 
         } catch (Exception e) {
-            commandContext.sendMessage(Message.raw("Error reading sound JSON: " + e.getMessage()));
+            ctx.sendMessage(Message.raw("Error reading sound JSON: " + e.getMessage()));
         }
     }
 }

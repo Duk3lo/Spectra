@@ -131,15 +131,25 @@ public class AudioEngine {
         }
     }
 
-    public void playSong(String path, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
-        schedulePlayback(() -> OggDecoder.loadAudio(path), onPlaybackStart, delayTime, timeUnit);
-    }
+    // --- MÉTODOS DE REPRODUCCIÓN ACTUALIZADOS ---
 
     public void playSong(Path path, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
-        schedulePlayback(() -> OggDecoder.loadAudio(path), onPlaybackStart, delayTime, timeUnit);
+        playSong(path, 0, onPlaybackStart, delayTime, timeUnit);
     }
 
-    private void schedulePlayback(Supplier<AudioBuffer> loader, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
+    public void playSong(Path path, long startTimeMs, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
+        schedulePlayback(() -> OggDecoder.loadAudio(path), startTimeMs, onPlaybackStart, delayTime, timeUnit);
+    }
+
+    public void playResource(String resourcePath, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
+        playResource(resourcePath, 0, onPlaybackStart, delayTime, timeUnit);
+    }
+
+    public void playResource(String resourcePath, long startTimeMs, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
+        schedulePlayback(() -> OggDecoder.loadResource(resourcePath), startTimeMs, onPlaybackStart, delayTime, timeUnit);
+    }
+
+    private void schedulePlayback(Supplier<AudioBuffer> loader, long startTimeMs, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
         if (executor == null) {
             throw new IllegalStateException("Engine not started. Call start() first.");
         }
@@ -153,6 +163,12 @@ public class AudioEngine {
                 currentBuffer = loader.get();
                 player.load(currentBuffer, config.getGeneral().getCurrentVolume());
 
+                // Aplicar el tiempo de inicio antes de dar Play
+                if (startTimeMs > 0) {
+                    float seconds = startTimeMs / 1000.0f;
+                    player.setOffsetSeconds(seconds);
+                }
+
                 beatDetector = new BeatDetector(config, logger);
                 beatDetector.preScan(currentBuffer, analyzer);
 
@@ -165,6 +181,20 @@ public class AudioEngine {
             }
         }, delayTime, timeUnit);
     }
+
+    public void seekTo(long timeMs) {
+        synchronized (engineLock) {
+            if (currentBuffer != null && engineRunning) {
+                float targetSeconds = timeMs / 1000.0f;
+                // Validar que no nos salgamos del audio
+                targetSeconds = Math.clamp(targetSeconds, 0, currentBuffer.durationSeconds());
+                player.setOffsetSeconds(targetSeconds);
+                logger.info("Seeked to: " + targetSeconds + "s");
+            }
+        }
+    }
+
+    // --- FIN DE MÉTODOS DE REPRODUCCIÓN ---
 
     private void processAudioFrame() {
         if (!engineRunning) return;

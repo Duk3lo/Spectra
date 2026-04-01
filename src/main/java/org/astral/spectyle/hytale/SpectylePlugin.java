@@ -25,7 +25,6 @@ public final class SpectylePlugin extends JavaPlugin {
     public SpectylePlugin(@NotNull JavaPluginInit init) {
         super(init);
         audioConfigFile = withConfig("AudioConfig", AudioConfigAdapter.CODEC);
-
         webVisualizer = new WebVisualizer("OpenAL (AudioSpectrum) - Hytale", 8080, pluginLogger);
     }
 

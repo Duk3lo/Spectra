@@ -1,5 +1,6 @@
 package org.astral.spectyle.hytale.commands.command;
 
+import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.CommandBase;
 import org.astral.spectyle.hytale.SpectylePlugin;
@@ -13,10 +14,9 @@ public final class Reload extends CommandBase {
         requirePermission(Permissions.RELOAD_CONFIG);
     }
 
-
     @Override
-    protected void executeSync(@NotNull CommandContext commandContext) {
-        instance.getLogger().atInfo().log("Reloading Configurations...");
+    protected void executeSync(@NotNull CommandContext ctx) {
+        ctx.sendMessage(Message.raw("[Spectyle] Reloading configurations..."));
         instance.reloadConfig();
     }
 }

@@ -28,6 +28,12 @@ public class OpenALPlayer {
         }
     }
 
+    public void setOffsetSeconds(float seconds) {
+        if (sourceId != 0) {
+            alSourcef(sourceId, AL_SEC_OFFSET, seconds);
+        }
+    }
+
     public void pause() {
         if (sourceId != 0) alSourcePause(sourceId);
     }

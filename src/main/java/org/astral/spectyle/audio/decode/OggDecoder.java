@@ -19,28 +19,31 @@ import java.nio.file.Path;
 
 public class OggDecoder {
 
-    public static @NotNull AudioBuffer loadAudio(String path) {
-        try {
-            return loadAudio(Path.of(path));
-        } catch (Exception e) {
-            throw new RuntimeException("No se pudo leer el archivo: " + path, e);
+    public static @NotNull AudioBuffer loadAudio(@NotNull Path path) {
+        try (InputStream is = Files.newInputStream(path)) {
+            return loadFromStream(is, path.toString());
+        } catch (IOException e) {
+            throw new RuntimeException("Error reading external file: " + path, e);
         }
     }
 
-    public static @NotNull AudioBuffer loadAudio(@NotNull Path path) {
-        ByteBuffer vorbisBuffer;
-
-        try {
-            vorbisBuffer = ioResourceToByteBuffer(path);
+    public static @NotNull AudioBuffer loadResource(String resourcePath) {
+        try (InputStream is = OggDecoder.class.getClassLoader().getResourceAsStream(resourcePath)) {
+            if (is == null) throw new IOException("Resource not found: " + resourcePath);
+            return loadFromStream(is, resourcePath);
         } catch (IOException e) {
-            throw new RuntimeException("No se pudo leer el archivo: " + path, e);
+            throw new RuntimeException("Error reading internal resource: " + resourcePath, e);
         }
+    }
+
+    private static @NotNull AudioBuffer loadFromStream(InputStream is, String sourceName) throws IOException {
+        ByteBuffer vorbisBuffer = streamToByteBuffer(is);
 
         try (MemoryStack stack = MemoryStack.stackPush()) {
             IntBuffer error = stack.mallocInt(1);
             long decoder = STBVorbis.stb_vorbis_open_memory(vorbisBuffer, error, null);
             if (decoder == 0) {
-                throw new RuntimeException("Error al decodificar OGG (Error code: " + error.get(0) + "): " + path);
+                throw new RuntimeException("Error decoding OGG (Error code: " + error.get(0) + "): " + sourceName);
             }
 
             STBVorbisInfo info = STBVorbisInfo.malloc(stack);
@@ -48,7 +51,6 @@ public class OggDecoder {
 
             int channels = info.channels();
             int sampleRate = info.sample_rate();
-
             int totalSamplesInStream = STBVorbis.stb_vorbis_stream_length_in_samples(decoder);
             float duration = (float) totalSamplesInStream / sampleRate;
 
@@ -62,22 +64,10 @@ public class OggDecoder {
         }
     }
 
-    private static @NotNull ByteBuffer ioResourceToByteBuffer(@NotNull Path path) throws IOException {
-        ByteBuffer buffer;
-
-        if (!Files.exists(path)) {
-            throw new IOException("Archivo no encontrado: " + path);
-        }
-
-        try (InputStream source = Files.newInputStream(path);
-             ReadableByteChannel rbc = Channels.newChannel(source)) {
-
-            buffer = BufferUtils.createByteBuffer(1024 * 1024);
-
-            while (true) {
-                int bytes = rbc.read(buffer);
-                if (bytes == -1) break;
-
+    private static @NotNull ByteBuffer streamToByteBuffer(InputStream source) throws IOException {
+        ByteBuffer buffer = BufferUtils.createByteBuffer(1024 * 1024);
+        try (ReadableByteChannel rbc = Channels.newChannel(source)) {
+            while (rbc.read(buffer) != -1) {
                 if (buffer.remaining() == 0) {
                     ByteBuffer newBuffer = BufferUtils.createByteBuffer(buffer.capacity() * 2);
                     buffer.flip();
@@ -86,7 +76,6 @@ public class OggDecoder {
                 }
             }
         }
-
         buffer.flip();
         return buffer;
     }
