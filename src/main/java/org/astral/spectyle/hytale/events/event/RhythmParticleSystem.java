@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 public final class RhythmParticleSystem extends DelayedEntitySystem<EntityStore> {
 
     public RhythmParticleSystem() {
-        super(0.0f);
+        super(0.3f);
     }
 
     @Override
@@ -26,7 +26,7 @@ public final class RhythmParticleSystem extends DelayedEntitySystem<EntityStore>
                      @NotNull CommandBuffer<EntityStore> commandBuffer) {
 
         if (AudioAPI.isPaused() || !AudioAPI.isPlaying()) return;
-        if (!AudioAPI.consumeBassHit()) return;
+        if (!AudioAPI.isBassHit()) return;
 
         Ref<EntityStore> ref = archetypeChunk.getReferenceTo(i);
         PlayerRef playerRef = store.getComponent(ref, PlayerRef.getComponentType());
