@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 public final class RhythmParticleSystem extends DelayedEntitySystem<EntityStore> {
 
     public RhythmParticleSystem() {
-        super(0.5f);
+        super(0.0f);
     }
 
     @Override
@@ -25,9 +25,8 @@ public final class RhythmParticleSystem extends DelayedEntitySystem<EntityStore>
                      @NotNull Store<EntityStore> store,
                      @NotNull CommandBuffer<EntityStore> commandBuffer) {
 
-        if (AudioAPI.isPaused()) return;
-        if (!AudioAPI.isPlaying()) return;
-        if (!AudioAPI.popBassEvent()) return;
+        if (AudioAPI.isPaused() || !AudioAPI.isPlaying()) return;
+        if (!AudioAPI.consumeBassHit()) return;
 
         Ref<EntityStore> ref = archetypeChunk.getReferenceTo(i);
         PlayerRef playerRef = store.getComponent(ref, PlayerRef.getComponentType());
@@ -41,11 +40,7 @@ public final class RhythmParticleSystem extends DelayedEntitySystem<EntityStore>
                 position.getZ()
         );
 
-        Particles.spawnRhythm(
-                "Block_Break_Sand",
-                particlePos,
-                store
-        );
+        Particles.spawnRhythmRandom(particlePos, store);
     }
 
     @Override

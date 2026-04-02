@@ -6,7 +6,8 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class AudioAPI {
+public final class AudioAPI {
+
     private static final AtomicBoolean bassHit = new AtomicBoolean(false);
     private static final AtomicBoolean snareHit = new AtomicBoolean(false);
     private static final AtomicBoolean hatHit = new AtomicBoolean(false);
@@ -15,8 +16,8 @@ public class AudioAPI {
     private static final AtomicInteger hitCombo = new AtomicInteger(0);
     private static volatile float particleSpeedMultiplier = 1.0f;
 
-    private static volatile boolean isPaused = false;
-    private static volatile boolean isPlaying = false;
+    private static volatile boolean paused = false;
+    private static volatile boolean playing = false;
 
     private static volatile float kickIntensity = 0.0f;
     private static volatile float snareIntensity = 0.0f;
@@ -27,9 +28,13 @@ public class AudioAPI {
     private static volatile float volume = 0.0f;
 
     private static volatile float[] currentBars = new float[0];
+
     private static volatile ReactiveSnapshot reactiveSnapshot = new ReactiveSnapshot(
             0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f
     );
+
+    private AudioAPI() {
+    }
 
     public static @NotNull String getCurrentTimeFormatted() {
         return formatTime(currentPositionSeconds);
@@ -46,13 +51,53 @@ public class AudioAPI {
         return String.format("%02d:%02d", minutes, secs);
     }
 
-    public static void triggerBass() { bassHit.set(true); }
-    public static void triggerSnare() { snareHit.set(true); }
-    public static void triggerHat() { hatHit.set(true); }
+    public static void triggerBass() {
+        setBassHit(true);
+    }
 
-    public static boolean popBassEvent() { return bassHit.getAndSet(false); }
-    public static boolean popSnareEvent() { return snareHit.getAndSet(false); }
-    public static boolean popHatEvent() { return hatHit.getAndSet(false); }
+    public static void triggerSnare() {
+        setSnareHit(true);
+    }
+
+    public static void triggerHat() {
+        setHatHit(true);
+    }
+
+    public static boolean isBassHit() {
+        return bassHit.get();
+    }
+
+    public static boolean isSnareHit() {
+        return snareHit.get();
+    }
+
+    public static boolean isHatHit() {
+        return hatHit.get();
+    }
+
+    public static void setBassHit(boolean value) {
+        bassHit.set(value);
+    }
+
+    public static void setSnareHit(boolean value) {
+        snareHit.set(value);
+    }
+
+    public static void setHatHit(boolean value) {
+        hatHit.set(value);
+    }
+
+    public static boolean consumeBassHit() {
+        return bassHit.getAndSet(false);
+    }
+
+    public static boolean consumeSnareHit() {
+        return snareHit.getAndSet(false);
+    }
+
+    public static boolean consumeHatHit() {
+        return hatHit.getAndSet(false);
+    }
 
     public static float getBarValue(int index) {
         float[] bars = currentBars;
@@ -60,22 +105,28 @@ public class AudioAPI {
         return bars[index];
     }
 
-    public static float[] getAllBars() {
-        return currentBars;
+    public static float @NotNull [] getAllBars() {
+        return Arrays.copyOf(currentBars, currentBars.length);
     }
 
     public static void setBars(float[] newBars) {
-        if (newBars != null) {
-            currentBars = Arrays.copyOf(newBars, newBars.length);
-        }
+        currentBars = (newBars == null) ? new float[0] : Arrays.copyOf(newBars, newBars.length);
     }
 
     public static float getCurrentTime() {
         return currentPositionSeconds;
     }
 
+    public static void setCurrentPositionSeconds(float value) {
+        currentPositionSeconds = value;
+    }
+
     public static float getTotalTime() {
         return totalDurationSeconds;
+    }
+
+    public static void setTotalDurationSeconds(float value) {
+        totalDurationSeconds = value;
     }
 
     public static float getProgress() {
@@ -88,6 +139,10 @@ public class AudioAPI {
         return hitCombo.get();
     }
 
+    public static void setHitCombo(int value) {
+        hitCombo.set(Math.max(0, value));
+    }
+
     public static void incrementHitCombo() {
         hitCombo.incrementAndGet();
     }
@@ -98,6 +153,10 @@ public class AudioAPI {
 
     public static float getGlobalEnergy() {
         return globalEnergy;
+    }
+
+    public static void setGlobalEnergy(float value) {
+        globalEnergy = value;
     }
 
     public static synchronized void updateGlobalEnergy(float targetEnergy, float attack, float decay) {
@@ -114,52 +173,48 @@ public class AudioAPI {
         particleSpeedMultiplier = value;
     }
 
-    public static void setCurrentPositionSeconds(float value) {
-        currentPositionSeconds = value;
-    }
-
-    public static void setTotalDurationSeconds(float value) {
-        totalDurationSeconds = value;
-    }
-
-    public static void setPaused(boolean paused) {
-        isPaused = paused;
-    }
-
     public static boolean isPaused() {
-        return isPaused;
+        return paused;
     }
 
-    public static void setPlaying(boolean playing) {
-        isPlaying = playing;
+    public static void setPaused(boolean value) {
+        paused = value;
     }
 
     public static boolean isPlaying() {
-        return isPlaying;
+        return playing;
     }
 
-    public static void setKickIntensity(float value) {
-        kickIntensity = value;
-    }
-
-    public static void setSnareIntensity(float value) {
-        snareIntensity = value;
-    }
-
-    public static void setHatIntensity(float value) {
-        hatIntensity = value;
+    public static void setPlaying(boolean value) {
+        playing = value;
     }
 
     public static float getKickIntensity() {
         return kickIntensity;
     }
 
+    public static void setKickIntensity(float value) {
+        kickIntensity = value;
+    }
+
     public static float getSnareIntensity() {
         return snareIntensity;
     }
 
+    public static void setSnareIntensity(float value) {
+        snareIntensity = value;
+    }
+
     public static float getHatIntensity() {
         return hatIntensity;
+    }
+
+    public static void setHatIntensity(float value) {
+        hatIntensity = value;
+    }
+
+    public static ReactiveSnapshot getReactiveSnapshot() {
+        return reactiveSnapshot;
     }
 
     public static void setReactiveSnapshot(ReactiveSnapshot snapshot) {
@@ -168,8 +223,12 @@ public class AudioAPI {
         }
     }
 
-    public static ReactiveSnapshot getReactiveSnapshot() {
-        return reactiveSnapshot;
+    public static float getVolume() {
+        return volume;
+    }
+
+    public static void setVolume(float value) {
+        volume = value;
     }
 
     public static void reset() {
@@ -183,11 +242,10 @@ public class AudioAPI {
         currentPositionSeconds = 0.0f;
         totalDurationSeconds = 0.0f;
 
-        isPlaying = false;
-        isPaused = false;
+        playing = false;
+        paused = false;
 
         particleSpeedMultiplier = 1.0f;
-
         currentBars = new float[0];
 
         reactiveSnapshot = new ReactiveSnapshot(
@@ -197,13 +255,5 @@ public class AudioAPI {
         bassHit.set(false);
         snareHit.set(false);
         hatHit.set(false);
-    }
-
-    public static float getVolume() {
-        return volume;
-    }
-
-    public static void setVolume(float value) {
-        volume = value;
     }
 }
