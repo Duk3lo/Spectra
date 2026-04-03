@@ -21,36 +21,48 @@ public final class SpectylePlugin extends JavaPlugin {
     private AudioEngine engine;
     private final WebVisualizer webVisualizer;
     private static final String command = "spec";
-    private final PluginLogger pluginLogger = new PluginLogger(this);
+    private final PluginLogger pluginLogger;
 
     public SpectylePlugin(@NotNull JavaPluginInit init) {
         super(init);
-        audioConfigFile = withConfig("AudioConfig", AudioConfigAdapter.CODEC);
-        webVisualizer = new WebVisualizer("OpenAL (AudioSpectrum) - Hytale", 8080, pluginLogger);
+        this.pluginLogger = new PluginLogger(this);
+        this.audioConfigFile = withConfig("AudioConfig", AudioConfigAdapter.CODEC);
+        this.webVisualizer = new WebVisualizer("OpenAL (AudioSpectrum) - Hytale", 8080, pluginLogger);
+        bootstrapAssetPack();
+    }
+
+    private void bootstrapAssetPack() {
+        ConfigLoader.init(this);
     }
 
     @Override
     protected void setup() {
         instance = this;
-        ConfigLoader.init(this);
+
         ConfigLoader.add("AudioConfig", audioConfigFile);
         ConfigLoader.loadAll();
+
         config = audioConfigFile.load().join();
+
         engine = new AudioEngine(config, pluginLogger);
         engine.setWebVisualizer(webVisualizer);
         webVisualizer.setVolumeCallback(engine::setVolume);
+
         webVisualizer.start();
         webVisualizer.waitForConnection();
+
         engine.start();
+
         getCommandRegistry().registerCommand(new SpectyleCommands(command, "Using for Audios Analyzer"));
         SpectyleEvents.RegisterAll();
         getLogger().atInfo().log("Engine Started");
-
     }
 
     @Override
     protected void shutdown() {
-        engine.shutdown();
+        if (engine != null) {
+            engine.shutdown();
+        }
         getLogger().atInfo().log("Close Engine");
     }
 
@@ -61,7 +73,7 @@ public final class SpectylePlugin extends JavaPlugin {
         getLogger().atInfo().log("Reloading Success!");
     }
 
-    public static SpectylePlugin getInstance(){
+    public static SpectylePlugin getInstance() {
         return instance;
     }
 
@@ -69,7 +81,7 @@ public final class SpectylePlugin extends JavaPlugin {
         return engine;
     }
 
-    public AudioConfig getAudioConfig(){
+    public AudioConfig getAudioConfig() {
         return config;
     }
 }

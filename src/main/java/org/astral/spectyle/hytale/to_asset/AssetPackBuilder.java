@@ -1,7 +1,6 @@
 package org.astral.spectyle.hytale.to_asset;
 
 import com.google.gson.GsonBuilder;
-import com.hypixel.hytale.server.core.asset.type.soundevent.config.SoundEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -19,6 +18,13 @@ public final class AssetPackBuilder {
         this.paths = new AssetPackPaths(modsDir, config.packFolderName());
         this.jsonFiles = new JsonFiles(new GsonBuilder().setPrettyPrinting().create());
         this.pluginVersion = pluginVersion.isBlank() ? "dev" : pluginVersion.trim();
+    }
+
+    public void ensureStructure() throws IOException {
+        Files.createDirectories(paths.packRoot());
+        Files.createDirectories(paths.commonSoundsDir());
+        Files.createDirectories(paths.soundEventDir());
+        ensureManifest();
     }
 
     public void ensureManifest() throws IOException {
@@ -44,10 +50,10 @@ public final class AssetPackBuilder {
             @NotNull String renamedOggFileName
     ) throws IOException {
 
-        ensureManifest();
+        ensureStructure();
 
         String soundEventId = toPascal(triggerName);
-        BuiltPaths built = copyOgg(localOgg, renamedOggFileName);
+        BuiltPaths built = copyOggAtomic(localOgg, renamedOggFileName);
 
         SoundEventJson soundEventJson = SoundEventJson.create(built.relative(), built.absolute());
         jsonFiles.writeJsonSafely(paths.soundEventFile(soundEventId), soundEventJson);
@@ -61,14 +67,21 @@ public final class AssetPackBuilder {
         );
     }
 
-    private @NotNull BuiltPaths copyOgg(Path sourceOgg, String targetFileName) throws IOException {
+    private @NotNull BuiltPaths copyOggAtomic(Path sourceOgg, String targetFileName) throws IOException {
         Path dst = paths.commonSoundsDir().resolve(targetFileName);
-
         Files.createDirectories(dst.getParent());
-        Files.copy(sourceOgg, dst, StandardCopyOption.REPLACE_EXISTING);
 
-        String relative = "Sounds/Spectyle/" + targetFileName;
+        Path tmp = dst.resolveSibling(dst.getFileName().toString() + ".tmp");
 
+        Files.copy(sourceOgg, tmp, StandardCopyOption.REPLACE_EXISTING);
+
+        try {
+            Files.move(tmp, dst, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(tmp, dst, StandardCopyOption.REPLACE_EXISTING);
+        }
+
+        String relative = "Sounds/" + targetFileName;
         return new BuiltPaths(dst, relative);
     }
 
@@ -135,14 +148,13 @@ public final class AssetPackBuilder {
         }
 
         public @NotNull Path commonSoundsDir() {
-            return packRoot.resolve("Common").resolve("Sounds").resolve("Spectyle");
+            return packRoot.resolve("Common").resolve("Sounds");
         }
 
         public @NotNull Path soundEventDir() {
             return packRoot.resolve("Server")
                     .resolve("Audio")
-                    .resolve("SoundEvents")
-                    .resolve("Beat");
+                    .resolve("SoundEvents");
         }
 
         public @NotNull Path soundEventFile(String soundEventId) {

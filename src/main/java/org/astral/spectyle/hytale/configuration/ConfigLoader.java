@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public final class ConfigLoader {
 
@@ -21,7 +22,23 @@ public final class ConfigLoader {
 
     public static void init(@NotNull JavaPlugin pluginInstance) {
         plugin = pluginInstance;
+        initFolders();
         initAssetPack();
+    }
+
+    private static void initFolders() {
+        try {
+            soundPath = plugin.getDataDirectory().resolve("Sounds");
+            Files.createDirectories(soundPath);
+
+            plugin.getLogger().atInfo()
+                    .log("Carpeta Sounds lista en: %s", soundPath);
+
+        } catch (Exception e) {
+            plugin.getLogger().atSevere()
+                    .withCause(e)
+                    .log("No se pudo inicializar carpetas");
+        }
     }
 
     private static void initAssetPack() {
@@ -35,13 +52,23 @@ public final class ConfigLoader {
                             "Audio system pack"
                     );
 
-            assetPack = new AssetPackBuilder(
+            Path modsDir = Objects.requireNonNullElse(
                     plugin.getDataDirectory().getParent(),
+                    plugin.getDataDirectory()
+            );
+
+            assetPack = new AssetPackBuilder(
+                    modsDir,
                     "2026.03.26-89796e57b",
                     config
             );
 
-            plugin.getLogger().atInfo().log("AssetPackBuilder inicializado");
+            assetPack.ensureStructure();
+
+            plugin.getLogger().atInfo().log(
+                    "AssetPackBuilder inicializado en: %s",
+                    assetPack.paths().packRoot()
+            );
 
         } catch (Exception e) {
             plugin.getLogger().atSevere()
@@ -65,8 +92,6 @@ public final class ConfigLoader {
         if (plugin == null) {
             throw new IllegalStateException("ConfigLoader no ha sido inicializado");
         }
-
-        initFolders();
 
         for (Map.Entry<String, Config<?>> entry : configs.entrySet()) {
             String key = entry.getKey();
@@ -95,21 +120,6 @@ public final class ConfigLoader {
                         .withCause(e)
                         .log("Error al manejar config: " + fileName);
             }
-        }
-    }
-
-    private static void initFolders() {
-        try {
-            soundPath = plugin.getDataDirectory().resolve("Sounds");
-            Files.createDirectories(soundPath);
-
-            plugin.getLogger().atInfo()
-                    .log("Carpeta Sounds lista en: %s", soundPath);
-
-        } catch (Exception e) {
-            plugin.getLogger().atSevere()
-                    .withCause(e)
-                    .log("No se pudo inicializar carpetas");
         }
     }
 

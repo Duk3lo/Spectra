@@ -32,7 +32,7 @@ public final class Adjust extends CommandBase {
         long targetTimeMs = currentTimeMs + offsetMs;
         engine.seekTo(targetTimeMs);
         String action = offsetMs >= 0 ? "Fast-forwarded" : "Rewound";
-        ctx.sendMessage(Message.raw(String.format("[Spectyle] %s §f%dms. Current Time: %s",
+        ctx.sendMessage(Message.raw(String.format("[Spectyle] %s %dms. Current Time: %s",
                 action, Math.abs(offsetMs), AudioAPI.getCurrentTimeFormatted())));
     }
 }

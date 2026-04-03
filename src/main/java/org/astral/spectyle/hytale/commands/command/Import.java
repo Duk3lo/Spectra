@@ -37,10 +37,20 @@ public final class Import extends CommandBase {
             ctx.sendMessage(Message.raw("File not found: " + source));
             return;
         }
+
         try {
             AssetPackBuilder builder = ConfigLoader.getAssetPack();
             AssetPackBuilder.BuiltCustomSound built = builder.buildCustomSound(source, name, ogg);
-            ctx.sendMessage(Message.raw("Sound imported successfully: " + built.soundEventId() + ". Reload the server to use the sound."));
+
+            ctx.sendMessage(Message.raw(
+                    "Sound imported successfully: " + built.soundEventId() +
+                            ". The server will automatically load the asset."
+            ));
+
+            ctx.sendMessage(Message.raw(
+                    "Warning: If you cannot hear the sound, please leave and rejoin the server to reload assets."
+            ));
+
         } catch (Exception e) {
             ctx.sendMessage(Message.raw("Error importing sound: " + e.getMessage()));
         }

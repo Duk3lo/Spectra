@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 
@@ -41,11 +40,6 @@ public final class JsonFiles {
     }
 
     public <T> T read(Path path, Class<T> type) throws IOException {
-        String json = Files.readString(path, StandardCharsets.UTF_8);
-        return gson.fromJson(json, type);
-    }
-
-    public <T> T read(Path path, Type type) throws IOException {
         String json = Files.readString(path, StandardCharsets.UTF_8);
         return gson.fromJson(json, type);
     }
