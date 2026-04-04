@@ -275,9 +275,15 @@ public final class WebVisualizer {
             exchange.getResponseHeaders().add("Cache-Control", "no-cache");
             exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
             exchange.sendResponseHeaders(200, 0);
+
             OutputStream os = exchange.getResponseBody();
             clients.add(os);
             clientConnectedLatch.countDown();
+            String msg = "{\"type\":\"volume_change\", \"value\":" +
+                    String.format(Locale.US, "%.2f", lastBroadcastVolume >= 0 ? lastBroadcastVolume : 0.1f) + "}";
+            byte[] bytes = ("data: " + msg + "\n\n").getBytes(StandardCharsets.UTF_8);
+            os.write(bytes);
+            os.flush();
         }
     }
 }

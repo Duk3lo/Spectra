@@ -315,7 +315,7 @@ public final class AudioControlFrame extends JFrame {
         JFileChooser chooser = new JFileChooser();
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             File file = chooser.getSelectedFile();
-            engine.playSong(file.toPath(), () -> {}, 0, TimeUnit.MILLISECONDS);
+            engine.playSong(file.toPath(),null,null , 0, TimeUnit.MILLISECONDS);
             statusLabel.setText("Playing: " + file.getName());
         }
     }

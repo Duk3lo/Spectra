@@ -66,7 +66,7 @@ public final class Play extends CommandBase {
                 return;
             }
 
-            engine.playSong(audioPath, ()-> {
+            engine.playSong(audioPath, null ,()-> {
                 for (PlayerRef player : Universe.get().getPlayers()) {
                     SoundUtil.playSoundEvent2dToPlayer(player, index, SoundCategory.SFX);
                 }

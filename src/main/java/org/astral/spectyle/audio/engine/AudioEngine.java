@@ -44,6 +44,8 @@ public class AudioEngine {
 
     private WebVisualizer webVisualizer;
 
+    private float liveVolume = 0.1f;
+
     public AudioEngine(AudioConfig config, EngineLogger logger) {
         this.config = Objects.requireNonNull(config, "config");
         this.logger = Objects.requireNonNull(logger, "logger");
@@ -114,25 +116,29 @@ public class AudioEngine {
         });
     }
 
-    public void playSong(Path path, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
-        playSong(path, 0, onPlaybackStart, delayTime, timeUnit);
+    public void playSong(Path path, Runnable before, Runnable after, long delayTime, TimeUnit timeUnit) {
+        playSong(path, 0, before, after, delayTime, timeUnit);
     }
 
-    public void playSong(Path path, long startTimeMs, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
-        schedulePlayback(() -> AudioDecoder.loadAudio(path), startTimeMs, onPlaybackStart, delayTime, timeUnit);
+    public void playSong(Path path, long startTimeMs, Runnable before, Runnable after, long delayTime, TimeUnit timeUnit) {
+        schedulePlayback(() -> AudioDecoder.loadAudio(path), startTimeMs, before, after, delayTime, timeUnit);
     }
 
-    public void playResource(String resourcePath, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
-        playResource(resourcePath, 0, onPlaybackStart, delayTime, timeUnit);
+    public void playResource(String resourcePath, Runnable before, Runnable after, long delayTime, TimeUnit timeUnit) {
+        playResource(resourcePath, 0, before, after, delayTime, timeUnit);
     }
 
-    public void playResource(String resourcePath, long startTimeMs, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
-        schedulePlayback(() -> AudioDecoder.loadResource(resourcePath), startTimeMs, onPlaybackStart, delayTime, timeUnit);
+    public void playResource(String resourcePath, long startTimeMs, Runnable before, Runnable after, long delayTime, TimeUnit timeUnit) {
+        schedulePlayback(() -> AudioDecoder.loadResource(resourcePath), startTimeMs, before, after, delayTime, timeUnit);
     }
 
-    private void schedulePlayback(Supplier<AudioBuffer> loader, long startTimeMs, Runnable onPlaybackStart, long delayTime, TimeUnit timeUnit) {
+    private void schedulePlayback(Supplier<AudioBuffer> loader, long startTimeMs, Runnable before, Runnable after, long delayTime, TimeUnit timeUnit) {
         if (executor == null) {
             throw new IllegalStateException("Engine not started. Call start() first.");
+        }
+
+        if (before != null) {
+            before.run();
         }
 
         executor.schedule(() -> {
@@ -142,7 +148,7 @@ public class AudioEngine {
                 player.cleanup();
 
                 currentBuffer = loader.get();
-                player.load(currentBuffer, config.getGeneral().getCurrentVolume());
+                player.load(currentBuffer, liveVolume);
 
                 if (startTimeMs > 0) {
                     float seconds = startTimeMs / 1000.0f;
@@ -155,8 +161,8 @@ public class AudioEngine {
                 player.play(false);
                 AudioAPI.reset();
 
-                if (onPlaybackStart != null) {
-                    onPlaybackStart.run();
+                if (after != null) {
+                    after.run();
                 }
             }
         }, delayTime, timeUnit);
@@ -256,15 +262,15 @@ public class AudioEngine {
     }
 
     public void setVolume(float volume) {
-        float v = Math.clamp(volume, 0.0f, 1.0f);
+        this.liveVolume = Math.clamp(volume, 0.0f, 1.0f); // Guardamos el volumen "vivo"
 
         synchronized (engineLock) {
-            player.setVolume(v);
-            AudioAPI.setVolume(v);
+            player.setVolume(liveVolume);
+            AudioAPI.setVolume(liveVolume);
         }
 
         if (webVisualizer != null) {
-            webVisualizer.sendVolumeUpdate(v);
+            webVisualizer.sendVolumeUpdate(liveVolume);
         }
     }
 

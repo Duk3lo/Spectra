@@ -137,10 +137,11 @@ source.onmessage = function(event) {
         const data = JSON.parse(event.data);
 
         if (data.type === 'volume_change') {
-            /* ADDED: Do not overwrite volume while user is dragging */
             if (DOM.slider && !isUserDraggingVol) {
                 DOM.slider.value = data.value;
-                DOM.volLabel.innerText = Math.round(Number(data.value) * 100) + '%';
+                if (DOM.volLabel) {
+                    DOM.volLabel.innerText = Math.round(Number(data.value) * 100) + '%';
+                }
             }
             return;
         }

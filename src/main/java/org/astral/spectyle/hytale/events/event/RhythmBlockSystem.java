@@ -8,15 +8,17 @@ import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.tick.DelayedEntitySystem;
 import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.math.vector.Vector3f;
+import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import org.astral.spectyle.audio.api.AudioAPI;
-import org.astral.spectyle.hytale.events.event.world.AudioBarsParticles;
+import org.astral.spectyle.hytale.events.event.world.AudioBarsBlocks;
 import org.jetbrains.annotations.NotNull;
 
-public final class RhythmParticleSystem extends DelayedEntitySystem<EntityStore> {
+public final class RhythmBlockSystem extends DelayedEntitySystem<EntityStore> {
 
-    public RhythmParticleSystem() {
+    public RhythmBlockSystem() {
         super(0.0f);
     }
 
@@ -26,20 +28,27 @@ public final class RhythmParticleSystem extends DelayedEntitySystem<EntityStore>
                      @NotNull Store<EntityStore> store,
                      @NotNull CommandBuffer<EntityStore> commandBuffer) {
 
-        if (AudioAPI.isPaused() || !AudioAPI.isPlaying()) return;
-
         Ref<EntityStore> ref = archetypeChunk.getReferenceTo(i);
+        Player player = store.getComponent(ref, Player.getComponentType());
         PlayerRef playerRef = store.getComponent(ref, PlayerRef.getComponentType());
-        if (playerRef == null) return;
+
+        if (player == null || playerRef == null) return;
+        World world = player.getWorld();
+        if (world == null) return;
+
+        if (AudioAPI.isPaused() || !AudioAPI.isPlaying()) {
+            AudioBarsBlocks.stopAndReset(world);
+            return;
+        }
 
         Vector3d position = playerRef.getTransform().getPosition();
         Vector3f headRotation = playerRef.getHeadRotation();
 
-        AudioBarsParticles.spawnBarsBehind(
+        AudioBarsBlocks.drawBlocksFront(
                 position,
                 headRotation,
                 AudioAPI.getAllBars(),
-                store
+                world
         );
     }
 
