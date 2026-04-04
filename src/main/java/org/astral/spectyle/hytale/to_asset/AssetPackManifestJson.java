@@ -7,7 +7,7 @@ import java.util.List;
 public record AssetPackManifestJson(
         @SerializedName("Group") String group,
         @SerializedName("Name") String name,
-        @SerializedName("Version") String version,
+        @SerializedName("ServerVersion") String version,
         @SerializedName("Description") String description,
         @SerializedName("Authors") List<Author> authors,
         @SerializedName("IncludesAssetPack") boolean includesAssetPack

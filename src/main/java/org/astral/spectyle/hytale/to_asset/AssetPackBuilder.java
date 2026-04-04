@@ -6,12 +6,15 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.Locale;
+import java.util.concurrent.*;
 
 public final class AssetPackBuilder {
     private final AssetPackConfig config;
     private final AssetPackPaths paths;
     private final JsonFiles jsonFiles;
     private final String pluginVersion;
+
+    private final Object importLock = new Object();
 
     public AssetPackBuilder(@NotNull Path modsDir, @NotNull String pluginVersion, @NotNull AssetPackConfig config) {
         this.config = config;
@@ -50,21 +53,87 @@ public final class AssetPackBuilder {
             @NotNull String renamedOggFileName
     ) throws IOException {
 
-        ensureStructure();
+        synchronized (importLock) {
+            ensureStructure();
 
-        String soundEventId = toPascal(triggerName);
-        BuiltPaths built = copyOggAtomic(localOgg, renamedOggFileName);
+            waitForStableFile(localOgg);
 
-        SoundEventJson soundEventJson = SoundEventJson.create(built.relative(), built.absolute());
-        jsonFiles.writeJsonSafely(paths.soundEventFile(soundEventId), soundEventJson);
+            String soundEventId = toPascal(triggerName);
+            BuiltPaths built = copyOggAtomic(localOgg, renamedOggFileName);
 
-        return new BuiltCustomSound(
-                soundEventId,
-                renamedOggFileName,
-                paths.packRoot(),
-                built.absolute(),
-                built.relative()
-        );
+            waitForStableFile(built.absolute());
+
+            SoundEventJson soundEventJson = SoundEventJson.create(built.relative(), built.absolute());
+            jsonFiles.writeJsonSafely(paths.soundEventFile(soundEventId), soundEventJson);
+
+            return new BuiltCustomSound(
+                    soundEventId,
+                    renamedOggFileName,
+                    paths.packRoot(),
+                    built.absolute(),
+                    built.relative()
+            );
+        }
+    }
+
+    private static final ScheduledExecutorService STABILITY_CHECKER =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "asset-file-stability-checker");
+                t.setDaemon(true);
+                return t;
+            });
+
+    private static final long STABILITY_TIMEOUT_MS = 2000L;
+    private static final long STABILITY_POLL_MS = 100L;
+
+    private void waitForStableFile(Path file) throws IOException {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        final long deadline = System.currentTimeMillis() + STABILITY_TIMEOUT_MS;
+        final long[] lastSize = { -1L };
+        final int[] stableChecks = { 0 };
+
+        ScheduledFuture<?> task = STABILITY_CHECKER.scheduleAtFixedRate(() -> {
+            try {
+                if (System.currentTimeMillis() >= deadline) {
+                    future.completeExceptionally(
+                            new IOException("El archivo no se estabilizó a tiempo: " + file)
+                    );
+                    return;
+                }
+
+                if (Files.exists(file)) {
+                    long size = Files.size(file);
+
+                    if (size > 0 && size == lastSize[0]) {
+                        stableChecks[0]++;
+                        if (stableChecks[0] >= 2) {
+                            future.complete(null);
+                        }
+                    } else {
+                        stableChecks[0] = 0;
+                        lastSize[0] = size;
+                    }
+                }
+            } catch (Exception e) {
+                future.completeExceptionally(e);
+            }
+        }, 0L, STABILITY_POLL_MS, TimeUnit.MILLISECONDS);
+
+        try {
+            future.get(STABILITY_TIMEOUT_MS + 500L, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted waiting for stable file: " + file, e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException io) throw io;
+            throw new IOException("Error waiting for stable file: " + file, cause);
+        } catch (TimeoutException e) {
+            throw new IOException("Time exceeded waiting for stable file: " + file, e);
+        } finally {
+            task.cancel(true);
+        }
     }
 
     private @NotNull BuiltPaths copyOggAtomic(Path sourceOgg, String targetFileName) throws IOException {

@@ -47,7 +47,7 @@ public final class ConfigLoader {
                     new AssetPackBuilder.AssetPackConfig(
                             "SpectyleAssets",
                             "Astral",
-                            "Spectyle",
+                            "Spectyle.Assets",
                             "Duk3lo",
                             "Audio system pack"
                     );
