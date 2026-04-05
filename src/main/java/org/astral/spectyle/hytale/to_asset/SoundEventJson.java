@@ -7,7 +7,6 @@ import java.nio.file.Path;
 import java.util.List;
 
 public record SoundEventJson(
-        @SerializedName("Parent") String parent,
         @SerializedName("Volume") int volume,
         @SerializedName("Layers") List<Layer> layers,
         @SerializedName("AbsolutePath") String absolutePath
@@ -25,7 +24,6 @@ public record SoundEventJson(
 
     public static @NotNull SoundEventJson create(String oggPathInCommonSounds, @NotNull Path absolutePath) {
         return new SoundEventJson(
-                "SFX_Attn_Moderate",
                 0,
                 List.of(new Layer(
                         List.of(oggPathInCommonSounds),

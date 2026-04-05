@@ -116,56 +116,78 @@ public class AudioEngine {
         });
     }
 
-    public void playSong(Path path, Runnable before, Runnable after, long delayTime, TimeUnit timeUnit) {
-        playSong(path, 0, before, after, delayTime, timeUnit);
+    public void playSong(Path path) {
+        playSong(path, 0, null);
     }
 
-    public void playSong(Path path, long startTimeMs, Runnable before, Runnable after, long delayTime, TimeUnit timeUnit) {
-        schedulePlayback(() -> AudioDecoder.loadAudio(path), startTimeMs, before, after, delayTime, timeUnit);
+    public void playSong(Path path, Runnable onPlay) {
+        playSong(path, 0, onPlay);
     }
 
-    public void playResource(String resourcePath, Runnable before, Runnable after, long delayTime, TimeUnit timeUnit) {
-        playResource(resourcePath, 0, before, after, delayTime, timeUnit);
+    public void playSong(Path path, long startTimeMs, Runnable onPlay) {
+        startPlaybackAsync(() -> AudioDecoder.loadAudio(path), startTimeMs, onPlay);
     }
 
-    public void playResource(String resourcePath, long startTimeMs, Runnable before, Runnable after, long delayTime, TimeUnit timeUnit) {
-        schedulePlayback(() -> AudioDecoder.loadResource(resourcePath), startTimeMs, before, after, delayTime, timeUnit);
+    public void playResource(String resourcePath) {
+        playResource(resourcePath, null);
     }
 
-    private void schedulePlayback(Supplier<AudioBuffer> loader, long startTimeMs, Runnable before, Runnable after, long delayTime, TimeUnit timeUnit) {
+    public void playResource(String resourcePath, Runnable onPlay) {
+        playResource(resourcePath, 0, onPlay);
+    }
+
+    public void playResource(String resourcePath, long startTimeMs, Runnable onPlay) {
+        startPlaybackAsync(() -> AudioDecoder.loadResource(resourcePath), startTimeMs, onPlay);
+    }
+
+
+    private void startPlaybackAsync(Supplier<AudioBuffer> loader, long startTimeMs, Runnable onPlay) {
         if (executor == null) {
             throw new IllegalStateException("Engine not started. Call start() first.");
         }
 
-        if (before != null) {
-            before.run();
-        }
+        executor.execute(() -> {
+            try {
+                AudioBuffer newBuffer = loader.get();
+                BeatDetector newDetector = new BeatDetector(config, logger);
+                newDetector.preScan(newBuffer, analyzer);
 
-        executor.schedule(() -> {
-            synchronized (engineLock) {
-                if (!engineRunning) return;
+                synchronized (engineLock) {
+                    if (!engineRunning) return;
 
-                player.cleanup();
+                    player.cleanup();
+                    currentBuffer = newBuffer;
+                    beatDetector = newDetector;
 
-                currentBuffer = loader.get();
-                player.load(currentBuffer, liveVolume);
+                    player.load(currentBuffer, liveVolume);
+                    if (startTimeMs > 0) {
+                        player.setOffsetSeconds(startTimeMs / 1000.0f);
+                    }
 
-                if (startTimeMs > 0) {
-                    float seconds = startTimeMs / 1000.0f;
-                    player.setOffsetSeconds(seconds);
+                    player.play(false);
+                    AudioAPI.reset();
                 }
 
-                beatDetector = new BeatDetector(config, logger);
-                beatDetector.preScan(currentBuffer, analyzer);
-
-                player.play(false);
-                AudioAPI.reset();
-
-                if (after != null) {
-                    after.run();
+                if (onPlay != null) {
+                    waitForPlaybackAndRun(onPlay, 0);
                 }
+
+            } catch (Exception e) {
+                logger.error("Error starting playback", e);
             }
-        }, delayTime, timeUnit);
+        });
+    }
+
+    private void waitForPlaybackAndRun(Runnable onPlay, int attempts) {
+        if (player.getState() == AL_PLAYING) {
+            onPlay.run();
+        }
+        else if (attempts < 50) {
+            executor.schedule(() -> waitForPlaybackAndRun(onPlay, attempts + 1), 1, TimeUnit.MILLISECONDS);
+        }
+        else {
+            logger.warn("Playback started but AL_PLAYING state was not reached after 50ms.");
+        }
     }
 
     public void seekTo(long timeMs) {
@@ -262,7 +284,7 @@ public class AudioEngine {
     }
 
     public void setVolume(float volume) {
-        this.liveVolume = Math.clamp(volume, 0.0f, 1.0f); // Guardamos el volumen "vivo"
+        this.liveVolume = Math.clamp(volume, 0.0f, 1.0f);
 
         synchronized (engineLock) {
             player.setVolume(liveVolume);

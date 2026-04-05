@@ -1,6 +1,5 @@
 package org.astral.spectyle.hytale.commands.command;
 
-
 import com.hypixel.hytale.protocol.SoundCategory;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.asset.type.soundevent.config.SoundEvent;
@@ -13,7 +12,6 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.SoundUtil;
 import org.astral.spectyle.audio.api.AudioAPI;
 import org.astral.spectyle.audio.engine.AudioEngine;
-import org.astral.spectyle.config.AudioConfig;
 import org.astral.spectyle.hytale.SpectylePlugin;
 import org.astral.spectyle.hytale.commands.permissions.Permissions;
 import org.astral.spectyle.hytale.configuration.ConfigLoader;
@@ -22,14 +20,12 @@ import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.concurrent.TimeUnit;
 
 public final class Play extends CommandBase {
 
     private final RequiredArg<String> sound = withRequiredArg("sound", "play sound Example: play Sound_Name", ArgTypes.STRING);
     private final SpectylePlugin plugin = SpectylePlugin.getInstance();
     private final AudioEngine engine = plugin.getAudioEngine();
-    private final AudioConfig config = plugin.getAudioConfig();
 
     public Play(String name, String description, boolean requiresConfirmation) {
         super(name, description, requiresConfirmation);
@@ -65,15 +61,13 @@ public final class Play extends CommandBase {
                 ctx.sendMessage(Message.raw("Audio file not found: " + audioPath));
                 return;
             }
-
-            engine.playSong(audioPath, null ,()-> {
-                for (PlayerRef player : Universe.get().getPlayers()) {
-                    SoundUtil.playSoundEvent2dToPlayer(player, index, SoundCategory.SFX);
-                }
-            }, config.getGeneral().getDelayedTaskInMs(), TimeUnit.MILLISECONDS);
-
+            engine.playSong(audioPath);
+            for (PlayerRef playerRef : Universe.get().getPlayers()){
+                SoundUtil.playSoundEvent2dToPlayer(playerRef, index, SoundCategory.SFX);
+            }
         } catch (Exception e) {
             ctx.sendMessage(Message.raw("Error reading sound JSON: " + e.getMessage()));
         }
     }
+
 }

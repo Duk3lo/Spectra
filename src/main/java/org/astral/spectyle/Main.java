@@ -8,7 +8,6 @@ import org.astral.spectyle.ui.AudioControlFrame;
 import org.astral.spectyle.web.WebVisualizer;
 
 import javax.swing.*;
-import java.util.concurrent.TimeUnit;
 
 public class Main {
 
@@ -37,7 +36,7 @@ public class Main {
             frame.setVisible(true);
         });
 
-        engine.playResource(finalAudio, null, () -> logger.info("\u001B[32m[Main] Local Playing\u001B[0m"), config.getGeneral().getDelayedTaskInMs(), TimeUnit.MILLISECONDS);
+        engine.playResource(finalAudio);
 
         engine.waitForExit();
     }
