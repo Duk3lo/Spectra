@@ -13,7 +13,7 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import org.astral.spectyle.audio.api.AudioAPI;
-import org.astral.spectyle.hytale.events.event.world.AudioBarsBlocks;
+import org.astral.spectyle.hytale.events.schedulers.world.AudioBarsBlocks;
 import org.jetbrains.annotations.NotNull;
 
 public final class RhythmBlockSystem extends DelayedEntitySystem<EntityStore> {

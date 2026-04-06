@@ -1,4 +1,4 @@
-package org.astral.spectyle.hytale.events.event.world;
+package org.astral.spectyle.hytale.events.schedulers.world;
 
 import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.math.vector.Vector3d;
@@ -20,7 +20,6 @@ public final class AudioBarsBlocks {
 
     private static final Set<Vector3i> activeBlocks = new HashSet<>();
 
-    // ⚓ Estos se quedan guardados mientras la música suene
     private static Vector3d lockedPos = null;
     private static Vector3f lockedRot = null;
 
@@ -32,19 +31,15 @@ public final class AudioBarsBlocks {
                                        float[] bars,
                                        @NotNull World world) {
 
-        // 1️⃣ Borramos solo los bloques del tick anterior (las barritas),
-        // pero NO borramos el lockedPos todavía.
         clearJustBlocks(world);
 
         if (bars == null || bars.length == 0) return;
 
-        // ⚓ 2️⃣ Definimos la posición UNA SOLA VEZ al empezar la canción
         if (lockedPos == null) {
             lockedPos = new Vector3d(playerPos.getX(), playerPos.getY(), playerPos.getZ());
             lockedRot = new Vector3f(headRotation.getX(), headRotation.getY(), headRotation.getZ());
         }
 
-        // 🧮 3️⃣ Usamos la posición bloqueada SIEMPRE
         double yawDegrees = -lockedRot.getY();
         double yaw = Math.toRadians(yawDegrees);
         double forwardX = -Math.sin(yaw);
@@ -77,9 +72,6 @@ public final class AudioBarsBlocks {
         }
     }
 
-    /**
-     * Limpieza de fotograma: Borra los bloques pero MANTIENE la posición fija.
-     */
     private static void clearJustBlocks(@NotNull World world) {
         if (!activeBlocks.isEmpty()) {
             for (Vector3i pos : activeBlocks) {
@@ -89,12 +81,9 @@ public final class AudioBarsBlocks {
         }
     }
 
-    /**
-     * Limpieza TOTAL: Borra bloques y RESETEA la posición (se llama al pausar).
-     */
     public static void stopAndReset(@NotNull World world) {
         clearJustBlocks(world);
-        lockedPos = null; // 🔓 Liberamos la posición
+        lockedPos = null;
         lockedRot = null;
     }
 

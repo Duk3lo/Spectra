@@ -13,6 +13,6 @@ public final class SpectyleCommands extends AbstractCommandCollection {
         addSubCommand(new Play("play", "Play Sound", false));
         addSubCommand(new Reload("reload", "Reload Api", false));
         addSubCommand(new Adjust("adjust", "Sync the audio by shifting time (ms)", false));
-
+        addSubCommand(new Visuals("visuals","Show the Spectrum", false));
     }
 }

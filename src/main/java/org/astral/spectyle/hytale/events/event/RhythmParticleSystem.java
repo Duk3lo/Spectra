@@ -11,7 +11,7 @@ import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import org.astral.spectyle.audio.api.AudioAPI;
-import org.astral.spectyle.hytale.events.event.world.AudioBarsParticles;
+import org.astral.spectyle.hytale.events.schedulers.world.AudioBarsParticles;
 import org.jetbrains.annotations.NotNull;
 
 public final class RhythmParticleSystem extends DelayedEntitySystem<EntityStore> {
