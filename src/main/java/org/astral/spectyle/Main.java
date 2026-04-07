@@ -35,7 +35,7 @@ public class Main {
             AudioControlFrame frame = new AudioControlFrame(engine, logger);
             frame.setVisible(true);
         });
-
+        System.out.println();
         engine.playResource(finalAudio);
 
         engine.waitForExit();
