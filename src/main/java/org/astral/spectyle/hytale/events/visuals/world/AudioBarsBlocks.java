@@ -13,7 +13,7 @@ import java.util.Set;
 public final class AudioBarsBlocks {
 
     private static final String BLOCK_HIGH = "Rock_Crystal_Blue_Block";
-    private static final double FRONT_DISTANCE = 7.0;
+    private static final double FRONT_DISTANCE = 0.0;
 
     private AudioBarsBlocks() {}
 
@@ -29,19 +29,10 @@ public final class AudioBarsBlocks {
         Vector3d lockedPos = data.getPos();
         Vector3f lockedRot = data.getRot();
 
-        double yawDegrees = -lockedRot.getY();
+        Adjust.Direction dir = Adjust.calculateDirections(lockedRot.getY());
 
-        double snappedYawDegrees = Math.round(yawDegrees / 90.0) * 90.0;
-        double yaw = Math.toRadians(snappedYawDegrees);
-
-        double forwardX = Math.round(-Math.sin(yaw));
-        double forwardZ = Math.round(Math.cos(yaw));
-
-        double leftX = Math.round(-Math.cos(yaw));
-        double leftZ = Math.round(-Math.sin(yaw));
-
-        double centerX = lockedPos.getX() + (forwardX * FRONT_DISTANCE);
-        double centerZ = lockedPos.getZ() + (forwardZ * FRONT_DISTANCE);
+        double centerX = lockedPos.getX() + (dir.forwardX() * FRONT_DISTANCE);
+        double centerZ = lockedPos.getZ() + (dir.forwardZ() * FRONT_DISTANCE);
         int baseY = (int) Math.floor(lockedPos.getY());
 
         double totalWidth = (bars.length - 1) * data.getSpacing();
@@ -53,8 +44,8 @@ public final class AudioBarsBlocks {
 
             double currentOffset = startOffset + (i * data.getSpacing());
 
-            int barX = (int) Math.round(centerX + (leftX * currentOffset));
-            int barZ = (int) Math.round(centerZ + (leftZ * currentOffset));
+            int barX = (int) Math.round(centerX + (dir.leftX() * currentOffset));
+            int barZ = (int) Math.round(centerZ + (dir.leftZ() * currentOffset));
 
             int blocksHigh = (int) Math.ceil(value * data.getMaxHeight());
 
