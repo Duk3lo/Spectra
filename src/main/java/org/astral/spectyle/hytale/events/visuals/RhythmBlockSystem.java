@@ -19,10 +19,8 @@ import java.util.Collection;
 
 public final class RhythmBlockSystem extends DelayedEntitySystem<EntityStore> {
 
-
-
     public RhythmBlockSystem() {
-        super(0.5f);
+        super(0.01f);
     }
 
     @Override
