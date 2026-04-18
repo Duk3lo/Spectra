@@ -30,12 +30,15 @@ public final class AudioBarsBlocks {
         Vector3f lockedRot = data.getRot();
 
         double yawDegrees = -lockedRot.getY();
-        double yaw = Math.toRadians(yawDegrees);
 
-        double forwardX = -Math.sin(yaw);
-        double forwardZ = Math.cos(yaw);
-        double rightX = Math.cos(yaw);
-        double rightZ = Math.sin(yaw);
+        double snappedYawDegrees = Math.round(yawDegrees / 90.0) * 90.0;
+        double yaw = Math.toRadians(snappedYawDegrees);
+
+        double forwardX = Math.round(-Math.sin(yaw));
+        double forwardZ = Math.round(Math.cos(yaw));
+
+        double leftX = Math.round(-Math.cos(yaw));
+        double leftZ = Math.round(-Math.sin(yaw));
 
         double centerX = lockedPos.getX() + (forwardX * FRONT_DISTANCE);
         double centerZ = lockedPos.getZ() + (forwardZ * FRONT_DISTANCE);
@@ -49,8 +52,9 @@ public final class AudioBarsBlocks {
             if (value <= 0.05f) continue;
 
             double currentOffset = startOffset + (i * data.getSpacing());
-            int barX = (int) Math.round(centerX + (rightX * currentOffset));
-            int barZ = (int) Math.round(centerZ + (rightZ * currentOffset));
+
+            int barX = (int) Math.round(centerX + (leftX * currentOffset));
+            int barZ = (int) Math.round(centerZ + (leftZ * currentOffset));
 
             int blocksHigh = (int) Math.ceil(value * data.getMaxHeight());
 
@@ -77,7 +81,7 @@ public final class AudioBarsBlocks {
         return false;
     }
 
-    private static void clearJustBlocks(@NotNull World world, Set<Vector3i> activeBlocks) {
+    private static void clearJustBlocks(@NotNull World world, @NotNull Set<Vector3i> activeBlocks) {
         if (!activeBlocks.isEmpty()) {
             for (Vector3i pos : activeBlocks) {
                 removeBlock(world, pos);

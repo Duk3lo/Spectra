@@ -19,6 +19,8 @@ import java.util.Collection;
 
 public final class RhythmBlockSystem extends DelayedEntitySystem<EntityStore> {
 
+    private long lastUpdateTimer = 0;
+
     public RhythmBlockSystem() {
         super(0.01f);
     }
@@ -35,6 +37,12 @@ public final class RhythmBlockSystem extends DelayedEntitySystem<EntityStore> {
         if (player == null) return;
         World world = player.getWorld();
         if (world == null) return;
+
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastUpdateTimer < 20) {
+            return;
+        }
+        lastUpdateTimer = currentTime;
 
         Collection<VisualizerManager.VisualizerData> visualizers = VisualizerManager.getAllGlobalData();
         if (visualizers.isEmpty()) return;
