@@ -30,9 +30,11 @@ public final class Disconnect {
                         World world = Universe.get().getWorld(worldUuid);
                         if (world != null) {
                             for (VisualizerManager.VisualizerData data : VisualizerManager.getAllGlobalData()) {
-                                if (data.getType().equals("blocks")) {
-                                    AudioBarsBlocks.stopAndReset(world, data);
-                                }
+                                world.execute(()->{
+                                    if (data.getType().equals("blocks")) {
+                                        AudioBarsBlocks.stopAndReset(world, data);
+                                    }
+                                });
                             }
                         }
                     }
