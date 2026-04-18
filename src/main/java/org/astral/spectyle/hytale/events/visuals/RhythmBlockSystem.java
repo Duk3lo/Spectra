@@ -1,4 +1,4 @@
-package org.astral.spectyle.hytale.events.event;
+package org.astral.spectyle.hytale.events.visuals;
 
 import com.hypixel.hytale.component.ArchetypeChunk;
 import com.hypixel.hytale.component.CommandBuffer;
@@ -6,20 +6,23 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.tick.DelayedEntitySystem;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import org.astral.spectyle.audio.api.AudioAPI;
-import org.astral.spectyle.hytale.events.schedulers.world.AudioBarsBlocks;
+import org.astral.spectyle.hytale.events.visuals.world.AudioBarsBlocks;
+import org.astral.spectyle.hytale.events.visuals.world.AudioBarsParticles;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Collection;
 
 public final class RhythmBlockSystem extends DelayedEntitySystem<EntityStore> {
 
+
+
     public RhythmBlockSystem() {
-        super(0.0f);
+        super(0.5f);
     }
 
     @Override
@@ -30,26 +33,43 @@ public final class RhythmBlockSystem extends DelayedEntitySystem<EntityStore> {
 
         Ref<EntityStore> ref = archetypeChunk.getReferenceTo(i);
         Player player = store.getComponent(ref, Player.getComponentType());
-        PlayerRef playerRef = store.getComponent(ref, PlayerRef.getComponentType());
 
-        if (player == null || playerRef == null) return;
+        if (player == null) return;
         World world = player.getWorld();
         if (world == null) return;
 
-        if (AudioAPI.isPaused() || !AudioAPI.isPlaying()) {
-            AudioBarsBlocks.stopAndReset(world);
+        Collection<VisualizerManager.VisualizerData> visualizers = VisualizerManager.getAllGlobalData();
+        if (visualizers.isEmpty()) return;
+
+        if (!AudioAPI.isPlaying()) {
+            for (VisualizerManager.VisualizerData data : visualizers) {
+                if (data.getType().equals("blocks")) {
+                    AudioBarsBlocks.stopAndReset(world, data);
+                }
+            }
+            VisualizerManager.stopAllGlobally();
             return;
         }
 
-        Vector3d position = playerRef.getTransform().getPosition();
-        Vector3f headRotation = playerRef.getHeadRotation();
+        if (AudioAPI.isPaused()) {
+            return;
+        }
 
-        AudioBarsBlocks.drawBlocksFront(
-                position,
-                headRotation,
-                AudioAPI.getAllBars(),
-                world
-        );
+        for (VisualizerManager.VisualizerData data : visualizers) {
+            if (data.getType().equals("blocks")) {
+                AudioBarsBlocks.drawBlocksFront(
+                        data,
+                        AudioAPI.getAllBars(),
+                        world
+                );
+            } else if (data.getType().equals("particles")) {
+                AudioBarsParticles.spawnBarsBehind(
+                        data,
+                        AudioAPI.getAllBars(),
+                        store
+                );
+            }
+        }
     }
 
     @Override

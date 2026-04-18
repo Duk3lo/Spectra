@@ -18,7 +18,7 @@ public final class AudioConfig {
     public void setBeatDetection(BeatDetection beatDetection) { this.beatDetection = beatDetection; }
 
     public static class General {
-        private float currentVolume = 0.5f;
+        private float currentVolume = 0.0f;
         private int updateRateMs = 16;
         private String delayedTask = "0s";
 
