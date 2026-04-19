@@ -8,6 +8,7 @@ import org.astral.spectyle.config.AudioConfig;
 import org.astral.spectyle.hytale.commands.SpectyleCommands;
 import org.astral.spectyle.hytale.configuration.AudioConfigAdapter;
 import org.astral.spectyle.hytale.configuration.ConfigLoader;
+import org.astral.spectyle.hytale.configuration.VisualsConfig;
 import org.astral.spectyle.hytale.events.SpectyleEvents;
 import org.astral.spectyle.hytale.loggin.PluginLogger;
 import org.astral.spectyle.web.WebVisualizer;
@@ -22,11 +23,18 @@ public final class SpectylePlugin extends JavaPlugin {
     private final WebVisualizer webVisualizer;
     private static final String command = "spec";
     private final PluginLogger pluginLogger;
+    private final Config<VisualsConfig> visualsConfigFile;
+    private VisualsConfig visualsConfig;
+    private static final String audio_n = "AudioConfig";
+    private static final String visuals_n = "VisualsConfig";
 
     public SpectylePlugin(@NotNull JavaPluginInit init) {
         super(init);
         this.pluginLogger = new PluginLogger(this);
-        this.audioConfigFile = withConfig("AudioConfig", AudioConfigAdapter.CODEC);
+
+        this.audioConfigFile = withConfig(audio_n, AudioConfigAdapter.CODEC);
+        this.visualsConfigFile = withConfig(visuals_n, VisualsConfig.CODEC);
+
         this.webVisualizer = new WebVisualizer("OpenAL (AudioSpectrum) - Hytale", 8080, pluginLogger);
         bootstrapAssetPack();
     }
@@ -39,10 +47,12 @@ public final class SpectylePlugin extends JavaPlugin {
     protected void setup() {
         instance = this;
 
-        ConfigLoader.add("AudioConfig", audioConfigFile);
+        ConfigLoader.add(audio_n, audioConfigFile);
+        ConfigLoader.add(visuals_n, visualsConfigFile);
         ConfigLoader.loadAll();
 
         config = audioConfigFile.load().join();
+        visualsConfig = visualsConfigFile.load().join();
 
         engine = new AudioEngine(config, pluginLogger);
         engine.setWebVisualizer(webVisualizer);
@@ -69,6 +79,7 @@ public final class SpectylePlugin extends JavaPlugin {
     public void reloadConfig() {
         AudioConfig newConfig = audioConfigFile.load().join();
         this.config = newConfig;
+        this.visualsConfig = visualsConfigFile.load().join();
         engine.reloadConfiguration(newConfig);
         getLogger().atInfo().log("Reloading Success!");
     }
@@ -81,7 +92,8 @@ public final class SpectylePlugin extends JavaPlugin {
         return engine;
     }
 
-    public AudioConfig getAudioConfig() {
-        return config;
+    public VisualsConfig getVisualsConfig() {
+        return visualsConfig;
     }
+
 }

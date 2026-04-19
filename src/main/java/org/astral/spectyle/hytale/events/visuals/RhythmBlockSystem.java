@@ -33,8 +33,8 @@ public final class RhythmBlockSystem extends DelayedEntitySystem<EntityStore> {
 
         Ref<EntityStore> ref = archetypeChunk.getReferenceTo(i);
         Player player = store.getComponent(ref, Player.getComponentType());
-
         if (player == null) return;
+
         World world = player.getWorld();
         if (world == null) return;
 
@@ -49,7 +49,7 @@ public final class RhythmBlockSystem extends DelayedEntitySystem<EntityStore> {
 
         if (!AudioAPI.isPlaying()) {
             for (VisualizerManager.VisualizerData data : visualizers) {
-                if (data.getType().equals("blocks")) {
+                if (data.getPreset().isBlocks() || data.getPreset().isMixed()) {
                     AudioBarsBlocks.stopAndReset(world, data);
                 }
             }
@@ -61,19 +61,16 @@ public final class RhythmBlockSystem extends DelayedEntitySystem<EntityStore> {
             return;
         }
 
+        float[] bars = AudioAPI.getAllBars();
+
         for (VisualizerManager.VisualizerData data : visualizers) {
-            if (data.getType().equals("blocks")) {
-                AudioBarsBlocks.drawBlocksFront(
-                        data,
-                        AudioAPI.getAllBars(),
-                        world
-                );
-            } else if (data.getType().equals("particles")) {
-                AudioBarsParticles.spawnBarsBehind(
-                        data,
-                        AudioAPI.getAllBars(),
-                        store
-                );
+            if (data.getPreset().isBlocks()) {
+                AudioBarsBlocks.draw(data, bars, world);
+            } else if (data.getPreset().isParticles()) {
+                AudioBarsParticles.spawnBarsBehind(data, bars, store);
+            } else if (data.getPreset().isMixed()) {
+                AudioBarsBlocks.draw(data, bars, world);
+                AudioBarsParticles.spawnBarsBehind(data, bars, store);
             }
         }
     }

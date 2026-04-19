@@ -15,30 +15,31 @@ import org.jetbrains.annotations.NotNull;
 import java.util.UUID;
 
 public final class Disconnect {
-    public static void register(@NotNull EventRegistry registry, HytaleLogger logger, AudioEngine engine){
+    public static void register(@NotNull EventRegistry registry, HytaleLogger logger, AudioEngine engine) {
         registry.registerGlobal(PlayerDisconnectEvent.class, event -> {
             UUID disconnectedPlayerUuid = event.getPlayerRef().getUuid();
             Play.getPlayersListen().remove(disconnectedPlayerUuid);
+
             if (Play.getPlayersListen().isEmpty()) {
-                if (AudioAPI.isPlaying()){
+                if (AudioAPI.isPlaying()) {
                     logger.atInfo().log("The last listener disconnected, the music is stopping...");
                     engine.stopSong();
                 }
+
                 try {
                     UUID worldUuid = event.getPlayerRef().getWorldUuid();
                     if (worldUuid != null) {
                         World world = Universe.get().getWorld(worldUuid);
                         if (world != null) {
                             for (VisualizerManager.VisualizerData data : VisualizerManager.getAllGlobalData()) {
-                                world.execute(()->{
-                                    if (data.getType().equals("blocks")) {
-                                        AudioBarsBlocks.stopAndReset(world, data);
-                                    }
-                                });
+                                if (data.getPreset().isBlocks() || data.getPreset().isMixed()) {
+                                    world.execute(() -> AudioBarsBlocks.stopAndReset(world, data));
+                                }
                             }
                         }
                     }
                 } catch (Exception ignored) {}
+
                 VisualizerManager.stopAllGlobally();
             }
         });
