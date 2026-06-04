@@ -16,7 +16,7 @@ public class Main {
     private static final WebVisualizer webVisualizer =
             new WebVisualizer("OpenAL (AudioSpectrum)", 8080, logger);
 
-    public static void main(String[] args) {
+    static void main() {
         AudioConfig config = new AudioConfig();
         AudioEngine engine = new AudioEngine(config, logger);
 
