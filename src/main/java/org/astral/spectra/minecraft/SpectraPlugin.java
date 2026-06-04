@@ -1,6 +1,5 @@
-package org.astral.spectra.paper;
+package org.astral.spectra.minecraft;
 
-import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 

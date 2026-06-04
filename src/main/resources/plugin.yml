@@ -1,5 +1,9 @@
 name: Spectra
 version: 0.0.1
-main: org.astral.spectra.paper.SpectraPlugin
-api-version: "1.21"
+main: org.astral.spectra.minecraft.SpectraPlugin
+api-version: '26.1.2'
 folia-supported: true
+commands:
+  playmusic:
+    description: Reproduce un archivo ogg custom.
+    usage: /playmusic
