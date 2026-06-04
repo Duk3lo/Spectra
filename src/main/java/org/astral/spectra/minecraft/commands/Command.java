@@ -1,44 +1,65 @@
 package org.astral.spectra.minecraft.commands;
 
-import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
+import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 public final class Command implements CommandExecutor, TabCompleter {
+    private final Plugin plugin;
+
+    public Command(Plugin plugin) {
+        this.plugin = plugin;
+    }
+
     @Override
     public boolean onCommand(@NotNull CommandSender sender, org.bukkit.command.@NotNull Command command, @NotNull String label, @NotNull String @NonNull [] args) {
-        // 1. Verificamos que quien ejecuta el comando sea un jugador (la consola no puede escuchar sonidos)
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("Este comando solo puede ser ejecutado por un jugador.");
+            sender.sendMessage("Solo los jugadores pueden escuchar música.");
             return true;
         }
-
-        // 2. Definimos la Key del sonido.
-        // "astral" es el namespace (la carpeta en el resource pack)
-        // "custom_music" es el nombre del evento de sonido definido en sounds.json
-        Key soundKey = Key.key("astral", "custom_music");
-
-        // 3. Creamos el objeto Sound de la API de Adventure
-        // Sound.Source.MASTER indica el canal de volumen (puede ser MUSIC, RECORD, etc)
-        // 1.0f es el volumen, 1.0f es el pitch (velocidad/tono)
+        if (args.length == 0) {
+            player.sendMessage("§c¡Falta el nombre del audio!");
+            player.sendMessage("§eUso correcto: §f/playmusic <nombre>");
+            player.sendMessage("§7Usa la tecla TAB para ver los audios disponibles.");
+            return true;
+        }
+        String soundName = args[0].toLowerCase().replaceAll("[^a-z0-9_]", "");
+        NamespacedKey soundKey = new NamespacedKey("astral", soundName);
         Sound customSound = Sound.sound(soundKey, Sound.Source.MASTER, 1.0f, 1.0f);
-
-        // 4. Reproducimos el sonido al jugador
         player.playSound(customSound);
-        player.sendMessage("¡Reproduciendo música custom!");
+        player.sendMessage("§a🎶 Reproduciendo: §f" + soundName);
 
         return true;
     }
 
     @Override
     public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, org.bukkit.command.@NotNull Command command, @NotNull String label, @NotNull String @NonNull [] args) {
-        return List.of(); // Sin autocompletado por ahora
+        List<String> completados = new ArrayList<>();
+
+        if (args.length == 1) {
+            File soundsDir = new File(plugin.getDataFolder(), "sounds");
+            if (soundsDir.exists()) {
+                File[] files = soundsDir.listFiles((_, name) -> name.toLowerCase().endsWith(".ogg"));
+                if (files != null) {
+                    for (File file : files) {
+                        String name = file.getName().replace(".ogg", "");
+                        if (name.startsWith(args[0].toLowerCase())) {
+                            completados.add(name);
+                        }
+                    }
+                }
+            }
+        }
+        return completados;
     }
 }
