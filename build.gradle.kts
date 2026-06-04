@@ -26,74 +26,74 @@ repositories {
 
 dependencies {
 //Audio
-val lwjglVersion = "3.4.1"
+    val lwjglVersion = "3.4.1"
 
-implementation(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))
-implementation("org.lwjgl:lwjgl")
-implementation("org.lwjgl:lwjgl-openal")
-implementation("org.lwjgl:lwjgl-stb")
-implementation("javazoom:jlayer:1.0.1")
+    implementation(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))
+    implementation("org.lwjgl:lwjgl")
+    implementation("org.lwjgl:lwjgl-openal")
+    implementation("org.lwjgl:lwjgl-stb")
+    implementation("javazoom:jlayer:1.0.1")
 
-listOf(
-    "natives-windows",
-    "natives-linux",
-    "natives-linux-arm64",
-    "natives-macos",
-    "natives-macos-arm64",
-    "natives-windows-arm64"
-).forEach { n ->
-    runtimeOnly("org.lwjgl:lwjgl::$n")
-    runtimeOnly("org.lwjgl:lwjgl-openal::$n")
-    runtimeOnly("org.lwjgl:lwjgl-stb::$n")
-}
+    listOf(
+        "natives-windows",
+        "natives-linux",
+        "natives-linux-arm64",
+        "natives-macos",
+        "natives-macos-arm64",
+        "natives-windows-arm64"
+    ).forEach { n ->
+        runtimeOnly("org.lwjgl:lwjgl::$n")
+        runtimeOnly("org.lwjgl:lwjgl-openal::$n")
+        runtimeOnly("org.lwjgl:lwjgl-stb::$n")
+    }
 
-implementation("com.github.wendykierp:JTransforms:3.1")
-compileOnly("org.jetbrains:annotations:24.1.0")
+    implementation("com.github.wendykierp:JTransforms:3.1")
+    compileOnly("org.jetbrains:annotations:24.1.0")
 
 //Hytale
 //compileOnly("com.hypixel.hytale:Server:+")
 
 //Minecraft
-compileOnly("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:26.1.2.build.+")
 }
 
 val nativeAccessArgs = listOf(
-"--enable-native-access=ALL-UNNAMED",
+    "--enable-native-access=ALL-UNNAMED",
 )
 
 tasks.withType<JavaExec> {
-jvmArgs(nativeAccessArgs)
+    jvmArgs(nativeAccessArgs)
 }
 
 tasks.shadowJar {
-archiveClassifier.set("")
-mergeServiceFiles()
+    archiveClassifier.set("")
+    mergeServiceFiles()
 
-manifest {
-    attributes(
-        "Main-Class" to "org.astral.spectyle.Main"
-    )
-}
+    manifest {
+        attributes(
+            "Main-Class" to "org.astral.spectyle.Main"
+        )
+    }
 }
 
 tasks.build {
-dependsOn(tasks.shadowJar)
+    dependsOn(tasks.shadowJar)
 }
 
 tasks.register<JavaExec>("runMain") {
-group = "application"
-description = "Main test"
+    group = "application"
+    description = "Main test"
 
-classpath = sourceSets["main"].runtimeClasspath
-mainClass.set("org.astral.spectyle.Main")
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("org.astral.spectyle.Main")
 
-jvmArgs(nativeAccessArgs)
+    jvmArgs(nativeAccessArgs)
 }
 
 sourceSets {
-main {
-    java {
-        exclude("org/astral/spectra/hytale/**")
+    main {
+        java {
+            exclude("org/astral/spectra/hytale/**")
+        }
     }
-}
 }
