@@ -1,0 +1,4 @@
+# Configuración del Servidor Web Interno para el Resource Pack
+web-server:
+  ip: "127.0.0.1"
+  port: 8080

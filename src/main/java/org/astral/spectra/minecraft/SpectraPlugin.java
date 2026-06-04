@@ -1,12 +1,10 @@
 package org.astral.spectra.minecraft;
 
-import org.astral.spectra.minecraft.commands.Command;
-import org.astral.spectra.minecraft.events.JoinListener;
+import org.astral.spectra.minecraft.commands.RegisterCommands;
+import org.astral.spectra.minecraft.events.RegisterEvents;
 import org.astral.spectra.minecraft.pack.PackServer;
 import org.astral.spectra.minecraft.pack.ResourcePackManager;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import java.util.Objects;
 
 public final class SpectraPlugin extends JavaPlugin {
 
@@ -15,32 +13,32 @@ public final class SpectraPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        super.onEnable();
+        saveDefaultConfig();
+        String serverIp = getConfig().getString("web-server.ip", "127.0.0.1");
+        int serverPort = getConfig().getInt("web-server.port", 8080);
 
-        packManager = new ResourcePackManager(this);
-        packManager.buildPack();
+        this.packManager = new ResourcePackManager(this);
+        this.packManager.buildPack();
 
-        packServer = new PackServer(this, packManager);
-        packServer.start(8080);
+        this.packServer = new PackServer(this, packManager);
+        this.packServer.start(serverPort);
 
-        // AQUÍ ESTÁ EL CAMBIO: Pasamos 'this' al comando
-        Command myCommand = new Command(this);
-        if (getCommand("playmusic") != null) {
-            Objects.requireNonNull(getCommand("playmusic")).setExecutor(myCommand);
-            Objects.requireNonNull(getCommand("playmusic")).setTabCompleter(myCommand);
-        }
-
-        // Mantén tu IP como la tienes, ya que veo que sí está descargando el pack
-        getServer().getPluginManager().registerEvents(new JoinListener(packManager, "127.0.0.1"), this);
+        RegisterEvents.registerAll(this, serverIp);
+        RegisterCommands.registerAll(this);
 
         getLogger().info("Spectra Plugin activado. ¡Sistema Dinámico Listo!");
+        getLogger().info("Hosteando pack en: http://" + serverIp + ":" + serverPort);
     }
 
     @Override
     public void onDisable() {
-        super.onDisable();
         if (packServer != null) {
             packServer.stop();
         }
+        getLogger().info("Spectra Plugin desactivado.");
+    }
+
+    public ResourcePackManager getPackManager(){
+        return packManager;
     }
 }

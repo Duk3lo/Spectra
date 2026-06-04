@@ -1,4 +1,4 @@
-package org.astral.spectra.minecraft.events;
+package org.astral.spectra.minecraft.events.event;
 
 import org.astral.spectra.minecraft.pack.ResourcePackManager;
 import org.bukkit.event.EventHandler;

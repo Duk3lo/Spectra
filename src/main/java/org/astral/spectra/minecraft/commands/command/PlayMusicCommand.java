@@ -1,4 +1,4 @@
-package org.astral.spectra.minecraft.commands;
+package org.astral.spectra.minecraft.commands.command;
 
 import net.kyori.adventure.sound.Sound;
 import org.bukkit.NamespacedKey;
@@ -10,14 +10,17 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 
-import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
-public final class Command implements CommandExecutor, TabCompleter {
+public final class PlayMusicCommand implements CommandExecutor, TabCompleter {
     private final Plugin plugin;
 
-    public Command(Plugin plugin) {
+    public PlayMusicCommand(Plugin plugin) {
         this.plugin = plugin;
     }
 
@@ -27,15 +30,18 @@ public final class Command implements CommandExecutor, TabCompleter {
             sender.sendMessage("Solo los jugadores pueden escuchar música.");
             return true;
         }
+
         if (args.length == 0) {
             player.sendMessage("§c¡Falta el nombre del audio!");
             player.sendMessage("§eUso correcto: §f/playmusic <nombre>");
             player.sendMessage("§7Usa la tecla TAB para ver los audios disponibles.");
             return true;
         }
+
         String soundName = args[0].toLowerCase().replaceAll("[^a-z0-9_]", "");
         NamespacedKey soundKey = new NamespacedKey("astral", soundName);
         Sound customSound = Sound.sound(soundKey, Sound.Source.MASTER, 1.0f, 1.0f);
+
         player.playSound(customSound);
         player.sendMessage("§a🎶 Reproduciendo: §f" + soundName);
 
@@ -47,16 +53,16 @@ public final class Command implements CommandExecutor, TabCompleter {
         List<String> completados = new ArrayList<>();
 
         if (args.length == 1) {
-            File soundsDir = new File(plugin.getDataFolder(), "sounds");
-            if (soundsDir.exists()) {
-                File[] files = soundsDir.listFiles((_, name) -> name.toLowerCase().endsWith(".ogg"));
-                if (files != null) {
-                    for (File file : files) {
-                        String name = file.getName().replace(".ogg", "");
-                        if (name.startsWith(args[0].toLowerCase())) {
-                            completados.add(name);
-                        }
-                    }
+            Path soundsDir = plugin.getDataFolder().toPath().resolve("sounds");
+
+            if (Files.exists(soundsDir)) {
+                try (Stream<Path> paths = Files.list(soundsDir)) {
+                    paths.filter(p -> p.toString().toLowerCase().endsWith(".ogg"))
+                            .map(p -> p.getFileName().toString().replace(".ogg", ""))
+                            .filter(name -> name.startsWith(args[0].toLowerCase()))
+                            .forEach(completados::add);
+                } catch (IOException e) {
+                    plugin.getLogger().warning("Error leyendo carpeta para autocompletado: " + e.getMessage());
                 }
             }
         }
