@@ -6,7 +6,7 @@ web-visualizer:
 
 audio:
   general:
-    current-volume: 1.0
+    current-volume: 0.0
     update-rate-ms: 16
   visualizer:
     fft-size: 2048

@@ -24,6 +24,18 @@ public final class VisualMath {
         return org.bukkit.Color.fromRGB(awtColor.getRed(), awtColor.getGreen(), awtColor.getBlue());
     }
 
+    public static @NonNull Vector getRightVector(@NonNull Vector direction) {
+        Vector up = new Vector(0, 1, 0);
+        if (Math.abs(direction.getY()) > 0.99) {
+            up = new Vector(1, 0, 0);
+        }
+        return direction.clone().crossProduct(up).normalize();
+    }
+
+    public static @NonNull Vector getUpVector(Vector direction, @NonNull Vector right) {
+        return right.clone().crossProduct(direction).normalize();
+    }
+
     public static @NonNull Vector getOffset(@NonNull String shape, int i, int total, double radius, double intensity, double spacing, double maxHeight) {
         double angle = (2 * Math.PI / total) * i;
 

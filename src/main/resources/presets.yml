@@ -106,3 +106,17 @@ presets:
     hit-block: "OCHRE_FROGLIGHT"
     low-particle: "END_ROD"
     high-particle: "GLOW"
+
+  # =================================================+
+  # NUEVO: MODO DE VUELO CON ELYTRAS (Mario Kart)
+  # =================================================+
+  elytra_race:
+    render-mode: "elytra"           # <--- ESTO ACTIVA EL NUEVO MODO MÁGICO
+    shape: "ring"
+    radius: 6.0                     # Tamaño del anillo
+    platforms: false
+    main-block: "SEA_LANTERN"       # Anillos mágicos de luz
+    accent-block: "GLOWSTONE"
+    hit-block: "OCHRE_FROGLIGHT"
+    low-particle: "END_ROD"
+    high-particle: "GLOW"

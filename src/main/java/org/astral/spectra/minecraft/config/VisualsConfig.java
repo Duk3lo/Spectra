@@ -13,23 +13,32 @@ public final class VisualsConfig {
         VisualPreset p = new VisualPreset();
         p.renderMode = sec.getString("render-mode", "mixed");
         p.shape = sec.getString("shape", "line");
-        p.mainBlock = Material.matchMaterial(sec.getString("main-block", "CYAN_CONCRETE"));
-        p.accentBlock = Material.matchMaterial(sec.getString("accent-block", "BLUE_CONCRETE"));
-        p.hitBlock = Material.matchMaterial(sec.getString("hit-block", "WHITE_CONCRETE"));
 
-        try {
-            // FIREWORKS_SPARK se llama FIREWORK en las nuevas versiones
-            p.lowParticle = Particle.valueOf(sec.getString("low-particle", "FIREWORK"));
-            p.highParticle = Particle.valueOf(sec.getString("high-particle", "END_ROD"));
-        } catch (Exception ignored) {}
+        p.mainBlock = parseMaterial(sec.getString("main-block"), Material.CYAN_CONCRETE);
+        p.accentBlock = parseMaterial(sec.getString("accent-block"), Material.BLUE_CONCRETE);
+        p.hitBlock = parseMaterial(sec.getString("hit-block"), Material.WHITE_CONCRETE);
+
+        p.lowParticle = parseParticle(sec.getString("low-particle"), Particle.FIREWORK);
+        p.highParticle = parseParticle(sec.getString("high-particle"), Particle.END_ROD);
 
         p.maxHeight = sec.getInt("max-height", 10);
         p.spacing = sec.getDouble("spacing", 1.0);
         p.radius = sec.getDouble("radius", 6.0);
-
         p.platforms = sec.getBoolean("platforms", false);
 
         presetsMap.put(name.toLowerCase(), p);
+    }
+
+    private Material parseMaterial(String name, Material def) {
+        if (name == null) return def;
+        Material m = Material.matchMaterial(name);
+        return m != null ? m : def;
+    }
+
+    private Particle parseParticle(String name, Particle def) {
+        if (name == null) return def;
+        try { return Particle.valueOf(name.toUpperCase()); }
+        catch (Exception e) { return def; }
     }
 
     public Map<String, VisualPreset> getPresetsMap() { return presetsMap; }

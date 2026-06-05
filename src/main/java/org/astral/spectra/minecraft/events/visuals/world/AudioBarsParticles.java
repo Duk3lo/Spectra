@@ -59,12 +59,14 @@ public final class AudioBarsParticles {
         }
     }
 
-    public static void spawnColored(@NonNull Location loc, org.bukkit.Color color, float size, int count) {
+    public static void spawnColored(Location loc, org.bukkit.Color color, float size, int count) {
+        if (loc == null || loc.getWorld() == null || color == null) return;
         Particle.DustOptions dust = new Particle.DustOptions(color, size);
         loc.getWorld().spawnParticle(Particle.DUST, loc, count, 0.1, 0.1, 0.1, 0, dust);
     }
 
-    private static void spawnSafe(Particle particle, Location loc) {
+    public static void spawnSafe(Particle particle, Location loc) {
+        if (particle == null || loc == null || loc.getWorld() == null) return;
         try {
             if (particle.getDataType() == Void.class) {
                 loc.getWorld().spawnParticle(particle, loc, 1, 0.02, 0.05, 0.02, 0.01);

@@ -36,7 +36,7 @@ public final class AudioBarsBlocks {
                 if (isKick && val > 0.5f && i % 2 == 0) {
                     Location platLoc = barBase.clone().add(0, height, 0);
                     org.bukkit.Color dynColor = VisualMath.getDynamicColor(i, bars.length);
-                    spawnPlatform(data, platLoc, preset.getHitBlock(), dynColor, 60L); // Duran 3 segundos ahora
+                    spawnPlatform(data, platLoc, preset.getHitBlock(), dynColor, 60L);
                 }
             }
             else {
