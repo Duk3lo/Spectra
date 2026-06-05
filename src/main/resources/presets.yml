@@ -1,0 +1,90 @@
+# =================================================+
+# PRESETS DE VISUALES PARA SPECTRA                |
+# Puedes crear tus propios estilos aquí           |
+# =================================================+
+
+presets:
+  # Tornado masivo de cristal y almas
+  tornado_storm:
+    render-mode: "mixed"
+    shape: "tornado"
+    radius: 6.0
+    max-height: 20
+    main-block: "BLUE_STAINED_GLASS"
+    accent-block: "CYAN_STAINED_GLASS"
+    hit-block: "WHITE_CONCRETE"
+    low-particle: "CLOUD"
+    high-particle: "SOUL_FIRE_FLAME"
+
+  # Cadena de ADN brillante
+  dna_helix:
+    render-mode: "mixed"
+    shape: "helix"
+    radius: 4.0
+    max-height: 8
+    main-block: "SEA_LANTERN"
+    accent-block: "WHITE_STAINED_GLASS"
+    low-particle: "WITCH_SPELL"
+    high-particle: "GLOW"
+
+  # Esfera galáctica que late con el bajo
+  cosmic_sphere:
+    render-mode: "particles"
+    shape: "sphere"
+    radius: 8.0
+    low-particle: "PORTAL"
+    high-particle: "END_ROD"
+
+  # Efecto de ondas boreales
+  aurora_wave:
+    render-mode: "mixed"
+    shape: "wave"
+    radius: 1.0
+    spacing: 1.2
+    max-height: 15
+    main-block: "CYAN_CONCRETE"
+    accent-block: "BLUE_CONCRETE"
+    low-particle: "SOUL_FIRE_FLAME"
+    high-particle: "TOTEM"
+
+  # Anillo de fuego pulsante
+  inferno_ring:
+    render-mode: "mixed"
+    shape: "pulse_ring"
+    radius: 10.0
+    max-height: 12
+    main-block: "MAGMA_BLOCK"
+    accent-block: "OBSIDIAN"
+    hit-block: "GOLD_BLOCK"
+    low-particle: "FLAME"
+    high-particle: "LAVA"
+
+  # Corazón latente (Para canciones lentas)
+  love_beats:
+    render-mode: "particles"
+    shape: "heart"
+    radius: 3.0
+    low-particle: "HEART"
+    high-particle: "VILLAGER_HAPPY"
+
+  # Espiral náutica rotatoria
+  nautilus_spiral:
+    render-mode: "mixed"
+    shape: "spiral"
+    radius: 12.0
+    max-height: 5
+    main-block: "PRISMARINE_BRICKS"
+    accent-block: "DARK_PRISMARINE"
+    low-particle: "WATER_WAKE"
+    high-particle: "DRIP_WATER"
+
+  # Línea de neón clásica
+  neon_line:
+    render-mode: "mixed"
+    shape: "line"
+    spacing: 1.0
+    max-height: 25
+    main-block: "LIME_STAINED_GLASS"
+    accent-block: "GREEN_STAINED_GLASS"
+    low-particle: "HAPPY_VILLAGER"
+    high-particle: "COMPOSTER"

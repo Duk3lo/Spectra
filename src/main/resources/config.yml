@@ -1,4 +1,13 @@
-# Configuración del Servidor Web Interno para el Resource Pack
 web-server:
   ip: "127.0.0.1"
   port: 8080
+web-visualizer:
+  port: 8081
+
+audio:
+  general:
+    current-volume: 1.0
+    update-rate-ms: 16
+  visualizer:
+    fft-size: 2048
+    num-bars: 64

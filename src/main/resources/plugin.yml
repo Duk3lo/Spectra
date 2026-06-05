@@ -5,5 +5,13 @@ api-version: '26.1.2'
 folia-supported: true
 commands:
   playmusic:
-    description: Reproduce un archivo ogg custom.
-    usage: /playmusic
+    description: Reproduce musica del resource pack.
+    usage: /playmusic <nombre>
+  spectra:
+    description: Comando de administracion para Spectra.
+    usage: /spectra <import|remove|list|reload>
+    permission: spectra.admin
+permissions:
+  spectra.admin:
+    description: Permite administrar los audios de Spectra.
+    default: op
