@@ -9,6 +9,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jspecify.annotations.NonNull;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class VisualsCmd implements SubCommand {
     private final SpectraPlugin plugin;
@@ -67,15 +68,14 @@ public class VisualsCmd implements SubCommand {
 
         VisualPreset custom = new VisualPreset(base);
 
-        // Parseo de argumentos opcionales
         String customName = (args.length > 2 + offset) ? args[2 + offset] : (isPermanent ? "Saved_" : "Vis_") + System.currentTimeMillis();
         if (args.length > 3 + offset) custom.setShape(args[3 + offset].toLowerCase());
         if (args.length > 4 + offset) custom.setMaxHeight(tryParseInt(args[4 + offset], custom.getMaxHeight()));
-        if (args.length > 5 + offset) custom.setSpacing(tryParseDouble(args[5 + offset], custom.getSpacing())); // USO DE SETSPACING
-        if (args.length > 6 + offset) custom.setRadius(tryParseDouble(args[6 + offset], custom.getRadius()));   // USO DE SETRADIUS
+        if (args.length > 5 + offset) custom.setSpacing(tryParseDouble(args[5 + offset], custom.getSpacing()));
+        if (args.length > 6 + offset) custom.setRadius(tryParseDouble(args[6 + offset], custom.getRadius()));
 
         Location loc = player.getLocation();
-        if (args.length >= 10 + offset) { // x y z están al final
+        if (args.length >= 10 + offset) {
             double x = parseCoord(args[7 + offset], loc.getX());
             double y = parseCoord(args[8 + offset], loc.getY());
             double z = parseCoord(args[9 + offset], loc.getZ());
@@ -86,7 +86,7 @@ public class VisualsCmd implements SubCommand {
         sender.sendMessage("§aVisualizador " + (isPermanent ? "§lPERMANENTE" : "§bTEMPORAL") + " §ainiciado: §f" + finalName);
     }
 
-    private double parseCoord(String val, double rel) {
+    private double parseCoord(@NonNull String val, double rel) {
         if (val.startsWith("~")) return rel + (val.length() > 1 ? Double.parseDouble(val.substring(1)) : 0);
         return Double.parseDouble(val);
     }
@@ -106,6 +106,18 @@ public class VisualsCmd implements SubCommand {
             list.addAll(plugin.getConfigManager().getVisualsConfig().getPresetsMap().keySet());
             return list;
         }
+
+        if (args.length == 3) {
+            String sub = args[1].toLowerCase();
+            if (sub.equals("create")) {
+                return new ArrayList<>(plugin.getConfigManager().getVisualsConfig().getPresetsMap().keySet());
+            } else if (sub.equals("stop") || sub.equals("remove")) {
+                return VisualizerManager.getAllVisualizers().stream()
+                        .map(VisualizerData::getName)
+                        .collect(Collectors.toList());
+            }
+        }
+
         return List.of();
     }
 }

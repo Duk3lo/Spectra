@@ -65,7 +65,7 @@ presets:
     shape: "heart"
     radius: 3.0
     low-particle: "HEART"
-    high-particle: "VILLAGER_HAPPY"
+    high-particle: "HAPPY_VILLAGER"
 
   # Espiral náutica rotatoria
   nautilus_spiral:
@@ -88,3 +88,21 @@ presets:
     accent-block: "GREEN_STAINED_GLASS"
     low-particle: "HAPPY_VILLAGER"
     high-particle: "COMPOSTER"
+
+  # =================================================+
+  # NUEVO: MINIJUEGO DE PLATAFORMAS FLOTANTES
+  # =================================================+
+  # =================================================+
+  # NUEVO: MINIJUEGO DE PLATAFORMAS FLOTANTES
+  # =================================================+
+  neon_platforms:
+    render-mode: "mixed"
+    shape: "spiral"
+    radius: 8.0
+    max-height: 8
+    platforms: true
+    main-block: "SEA_LANTERN"
+    accent-block: "GLOWSTONE"
+    hit-block: "OCHRE_FROGLIGHT"
+    low-particle: "END_ROD"
+    high-particle: "GLOW"

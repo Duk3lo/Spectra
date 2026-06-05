@@ -18,13 +18,17 @@ public final class VisualsConfig {
         p.hitBlock = Material.matchMaterial(sec.getString("hit-block", "WHITE_CONCRETE"));
 
         try {
-            p.lowParticle = Particle.valueOf(sec.getString("low-particle", "FIREWORKS_SPARK"));
+            // FIREWORKS_SPARK se llama FIREWORK en las nuevas versiones
+            p.lowParticle = Particle.valueOf(sec.getString("low-particle", "FIREWORK"));
             p.highParticle = Particle.valueOf(sec.getString("high-particle", "END_ROD"));
         } catch (Exception ignored) {}
 
         p.maxHeight = sec.getInt("max-height", 10);
         p.spacing = sec.getDouble("spacing", 1.0);
         p.radius = sec.getDouble("radius", 6.0);
+
+        p.platforms = sec.getBoolean("platforms", false);
+
         presetsMap.put(name.toLowerCase(), p);
     }
 
@@ -36,6 +40,7 @@ public final class VisualsConfig {
         public Particle lowParticle = Particle.FIREWORK, highParticle = Particle.END_ROD;
         public double spacing = 1.0, radius = 6.0;
         public int maxHeight = 10;
+        public boolean platforms = false;
 
         public VisualPreset() {}
         public VisualPreset(@NonNull VisualPreset other) {
@@ -43,6 +48,7 @@ public final class VisualsConfig {
             this.mainBlock = other.mainBlock; this.accentBlock = other.accentBlock; this.hitBlock = other.hitBlock;
             this.lowParticle = other.lowParticle; this.highParticle = other.highParticle;
             this.spacing = other.spacing; this.radius = other.radius; this.maxHeight = other.maxHeight;
+            this.platforms = other.platforms;
         }
 
         public String getRenderMode() { return renderMode; }
@@ -59,5 +65,6 @@ public final class VisualsConfig {
         public Material getHitBlock() { return hitBlock; }
         public Particle getLowParticle() { return lowParticle; }
         public Particle getHighParticle() { return highParticle; }
+        public boolean isPlatforms() { return platforms; }
     }
 }

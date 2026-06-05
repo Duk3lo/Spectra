@@ -5,6 +5,7 @@ import org.astral.spectra.minecraft.SpectraPlugin;
 import org.astral.spectra.minecraft.events.visuals.world.AudioBarsBlocks;
 import org.astral.spectra.minecraft.events.visuals.world.AudioBarsParticles;
 import org.astral.spectra.minecraft.utils.SchedulerUtil;
+import org.astral.spectra.minecraft.utils.VisualMath;
 
 public class RhythmTaskSystem {
     private final SpectraPlugin plugin;
@@ -21,6 +22,8 @@ public class RhythmTaskSystem {
                 if (!VisualizerManager.getAllVisualizers().isEmpty()) VisualizerManager.stopAll();
                 return;
             }
+
+            VisualMath.updatePhase();
 
             float[] bars = AudioAPI.getAllBars();
             boolean hasBeat = AudioAPI.isBassHit();
