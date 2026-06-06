@@ -10,11 +10,11 @@ import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 
-public class StopCmd implements SubCommand {
+public final class StopCmd implements SubCommand {
     private final SpectraPlugin plugin;
     public StopCmd(SpectraPlugin plugin) { this.plugin = plugin; }
 
-    @Override public String getName() { return "stop"; }
+    @Override public @NonNull String getName() { return "stop"; }
 
     @Override
     public void execute(@NonNull CommandSender sender, String[] args) {

@@ -12,6 +12,6 @@ public final class RegisterEvents {
         PluginManager manager = plugin.getServer().getPluginManager();
         manager.registerEvents(new JoinListener(), plugin);
         manager.registerEvents(new DisconnectListener(), plugin);
-        manager.registerEvents(new DebrisListener(plugin), plugin);
+        manager.registerEvents(new DebrisListener(), plugin);
     }
 }

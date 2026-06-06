@@ -7,11 +7,12 @@ import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 
-public class AdjustCmd implements SubCommand {
+public final class AdjustCmd implements SubCommand {
     private final SpectraPlugin plugin;
     public AdjustCmd(SpectraPlugin plugin) { this.plugin = plugin; }
 
-    @Override public String getName() { return "adjust"; }
+
+    @Override public @NonNull String getName() { return "adjust"; }
 
     @Override
     public void execute(CommandSender sender, String @NonNull [] args) {

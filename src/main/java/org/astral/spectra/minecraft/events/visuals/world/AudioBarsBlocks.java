@@ -4,11 +4,9 @@ import org.astral.spectra.audio.api.AudioAPI;
 import org.astral.spectra.minecraft.SpectraPlugin;
 import org.astral.spectra.minecraft.config.VisualsConfig.VisualPreset;
 import org.astral.spectra.minecraft.events.visuals.VisualizerData;
+import org.astral.spectra.minecraft.utils.GlobalKeys;
 import org.astral.spectra.minecraft.utils.VisualMath;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
+import org.bukkit.*;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Vector;
@@ -24,19 +22,29 @@ public final class AudioBarsBlocks {
 
         boolean isKick = AudioAPI.isBassHit();
 
+        boolean is3D = preset.getShape().equalsIgnoreCase("tornado")
+                || preset.getShape().equalsIgnoreCase("helix")
+                || preset.getShape().equalsIgnoreCase("sphere")
+                || preset.getShape().equalsIgnoreCase("heart");
+
+        double rotationAngle = Math.toRadians(-data.getYaw());
+
         for (int i = 0; i < bars.length; i++) {
             float val = Math.clamp(bars[i], 0, 1);
             if (val <= 0.05f) continue;
 
             Vector offset = VisualMath.getOffset(preset.getShape(), i, bars.length, preset.getRadius(), val, preset.getSpacing(), preset.getMaxHeight());
+
+            offset.rotateAroundY(rotationAngle);
+
             Location barBase = data.getPos().clone().add(offset);
-            int height = (int) Math.ceil(val * preset.getMaxHeight());
+            int height = is3D ? 1 : (int) Math.ceil(val * preset.getMaxHeight());
 
             if (preset.isPlatforms()) {
                 if (isKick && val > 0.5f && i % 2 == 0) {
                     Location platLoc = barBase.clone().add(0, height, 0);
                     org.bukkit.Color dynColor = VisualMath.getDynamicColor(i, bars.length);
-                    spawnPlatform(data, platLoc, preset.getHitBlock(), dynColor, 60L);
+                    spawnPlatform(data, platLoc, preset.getHitBlock(), dynColor);
                 }
             }
             else {
@@ -44,9 +52,7 @@ public final class AudioBarsBlocks {
                     Location loc = barBase.clone().add(0, y, 0);
                     Material mat = (y == height - 1) ? preset.getHitBlock() :
                             ((y % 2 != 0) ? preset.getAccentBlock() : preset.getMainBlock());
-
-                    loc.getBlock().setType(mat);
-                    data.getActiveBlocks().add(loc);
+                    spawnGravityBlock(loc, mat);
                 }
 
                 if (isKick && val > 0.85f && i % 15 == 0) {
@@ -56,7 +62,24 @@ public final class AudioBarsBlocks {
         }
     }
 
-    private static void spawnPlatform(@NonNull VisualizerData data, @NonNull Location loc, Material mat, org.bukkit.Color color, long stayTicks) {
+    private static void spawnGravityBlock(@NonNull Location loc, Material mat) {
+        loc.getWorld().spawn(loc, FallingBlock.class, fb -> {
+            fb.setBlockData(mat.createBlockData());
+            fb.setDropItem(false);
+            fb.setHurtEntities(false);
+            fb.setGravity(false);
+
+            fb.getPersistentDataContainer().set(GlobalKeys.getDebrisKey(), PersistentDataType.BYTE, (byte) 1);
+
+            Bukkit.getRegionScheduler().runDelayed(SpectraPlugin.getInstance(), loc, _ -> {
+                if (fb.isValid()) {
+                    fb.remove();
+                }
+            }, 3L);
+        });
+    }
+
+    private static void spawnPlatform(@NonNull VisualizerData data, @NonNull Location loc, Material mat, Color color) {
         Location[] crossShape = {
                 loc,
                 loc.clone().add(1, 0, 0), loc.clone().add(-1, 0, 0),
@@ -75,7 +98,7 @@ public final class AudioBarsBlocks {
         if (!spawnedAny) return;
         AudioBarsParticles.spawnColored(loc.clone().add(0.5, 1.2, 0.5), color, 2.0f, 5);
 
-        long warningTicks = stayTicks - 20L;
+        long warningTicks = 60L - 20L;
         Bukkit.getRegionScheduler().runDelayed(SpectraPlugin.getInstance(), loc, _ -> {
             for (Location l : crossShape) {
                 if (l.getBlock().getType() == mat) {
@@ -93,7 +116,7 @@ public final class AudioBarsBlocks {
                     spawnTornadoDebris(l, Material.RED_STAINED_GLASS);
                 }
             }
-        }, stayTicks);
+        }, 60L);
     }
 
     private static void spawnTornadoDebris(@NonNull Location loc, Material mat) {
@@ -102,11 +125,10 @@ public final class AudioBarsBlocks {
             fb.setDropItem(false);
             fb.setHurtEntities(false);
 
-            NamespacedKey key = new NamespacedKey(SpectraPlugin.getInstance(), "spectra_debris");
-            fb.getPersistentDataContainer().set(key, PersistentDataType.BYTE, (byte) 1);
+            fb.getPersistentDataContainer().set(GlobalKeys.getDebrisKey(), PersistentDataType.BYTE, (byte) 1);
             fb.setVelocity(new Vector((Math.random() - 0.5) * 0.15, 0.1, (Math.random() - 0.5) * 0.15));
 
-            Bukkit.getRegionScheduler().runDelayed(SpectraPlugin.getInstance(), loc, task -> {
+            Bukkit.getRegionScheduler().runDelayed(SpectraPlugin.getInstance(), loc, _ -> {
                 if (fb.isValid()) {
                     AudioBarsParticles.spawnColored(fb.getLocation(), org.bukkit.Color.RED, 0.8f, 2);
                     fb.remove();

@@ -16,11 +16,16 @@ public final class AudioBarsParticles {
         VisualPreset preset = data.getPreset();
         if (bars.length == 0) return;
 
+        double rotationAngle = Math.toRadians(-data.getYaw());
+
         for (int i = 0; i < bars.length; i++) {
             float val = Math.clamp(bars[i], 0, 1);
             if (val <= 0.05f) continue;
 
             Vector offset = VisualMath.getOffset(preset.getShape(), i, bars.length, preset.getRadius(), val, preset.getSpacing(), preset.getMaxHeight());
+
+            offset.rotateAroundY(rotationAngle);
+
             Location base = data.getPos().clone().add(offset);
             double height = val * preset.getMaxHeight();
             Location top = base.clone().add(0, height, 0);
@@ -44,12 +49,16 @@ public final class AudioBarsParticles {
     public static void spawnBeatEffect(@NonNull VisualizerData data, float @NonNull [] bars) {
         VisualPreset preset = data.getPreset();
         float intensity = AudioAPI.getKickIntensity();
+        double rotationAngle = Math.toRadians(-data.getYaw());
 
         for (int i = 0; i < bars.length; i++) {
             float val = Math.clamp(bars[i], 0, 1);
             if (val <= 0.1f) continue;
 
             Vector offset = VisualMath.getOffset(preset.getShape(), i, bars.length, preset.getRadius(), val, preset.getSpacing(), preset.getMaxHeight());
+
+            offset.rotateAroundY(rotationAngle);
+
             Location top = data.getPos().clone().add(offset).add(0, val * preset.getMaxHeight(), 0);
 
             if (intensity > 0.6f) {

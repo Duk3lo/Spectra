@@ -8,10 +8,10 @@ import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jspecify.annotations.NonNull;
-
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public final class VisualizerManager {
     private static final Map<String, VisualizerData> activeVisualizers = new ConcurrentHashMap<>();
@@ -24,10 +24,11 @@ public final class VisualizerManager {
         loadPersistentVisuals();
     }
 
-    public static @NonNull String start(String reqName, String presetName, VisualPreset preset, Location pos, boolean save) {
+    public static @NonNull String start(String reqName, String presetName, VisualPreset preset, Location pos, boolean save, Set<UUID> targets) {
         String name = (reqName == null || reqName.isEmpty()) ? "vis_" + System.currentTimeMillis() : reqName;
-        VisualizerData data = new VisualizerData(name, presetName, preset, pos);
+        VisualizerData data = new VisualizerData(name, presetName, preset, pos, pos.getYaw());
         data.setPersistent(save);
+        data.getTargets().addAll(targets);
 
         activeVisualizers.put(name, data);
         if (save) saveToDisk(data);
@@ -61,6 +62,11 @@ public final class VisualizerManager {
         dataConfig.set(path + ".radius", data.getPreset().getRadius());
         dataConfig.set(path + ".spacing", data.getPreset().getSpacing());
         dataConfig.set(path + ".location", data.getPos());
+        dataConfig.set(path + ".yaw", data.getYaw());
+
+        List<String> uuidStrings = data.getTargets().stream().map(UUID::toString).collect(Collectors.toList());
+        dataConfig.set(path + ".targets", uuidStrings);
+
         try { dataConfig.save(dataFile); } catch (Exception ignored) {}
     }
 
@@ -79,16 +85,23 @@ public final class VisualizerManager {
         for (String key : section.getKeys(false)) {
             String pName = section.getString(key + ".preset");
             Location loc = section.getLocation(key + ".location");
+            float yaw = (float) section.getDouble(key + ".yaw", 0.0);
             VisualPreset base = SpectraPlugin.getInstance().getConfigManager().getVisualsConfig().getPresetsMap().get(pName);
             if (base != null && loc != null) {
                 VisualPreset custom = new VisualPreset(base);
                 custom.setShape(section.getString(key + ".shape", base.getShape()));
                 custom.setMaxHeight(section.getInt(key + ".height", base.getMaxHeight()));
-                custom.setRadius(section.getDouble(key + ".radius", base.getRadius())); // <-- Usa setRadius
-                custom.setSpacing(section.getDouble(key + ".spacing", base.getSpacing())); // <-- Usa setSpacing
+                custom.setRadius(section.getDouble(key + ".radius", base.getRadius()));
+                custom.setSpacing(section.getDouble(key + ".spacing", base.getSpacing()));
 
-                VisualizerData data = new VisualizerData(key, pName, custom, loc);
+                VisualizerData data = new VisualizerData(key, pName, custom, loc, yaw);
                 data.setPersistent(true);
+
+                List<String> uuidStrings = section.getStringList(key + ".targets");
+                for (String s : uuidStrings) {
+                    try { data.getTargets().add(UUID.fromString(s)); } catch (Exception ignored) {}
+                }
+
                 activeVisualizers.put(key, data);
             }
         }

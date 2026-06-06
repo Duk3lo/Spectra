@@ -14,12 +14,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-public class PlayCmd implements SubCommand {
+public final class PlayCmd implements SubCommand {
     private final SpectraPlugin plugin;
 
     public PlayCmd(SpectraPlugin plugin) { this.plugin = plugin; }
 
-    @Override public String getName() { return "play"; }
+    @Override public @NonNull String getName() { return "play"; }
 
     @Override
     public void execute(CommandSender sender, String @NonNull [] args) {

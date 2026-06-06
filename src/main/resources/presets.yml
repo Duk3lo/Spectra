@@ -1,10 +1,4 @@
-# =================================================+
-# PRESETS DE VISUALES PARA SPECTRA                |
-# Puedes crear tus propios estilos aquí           |
-# =================================================+
-
 presets:
-  # Tornado masivo de cristal y almas
   tornado_storm:
     render-mode: "mixed"
     shape: "tornado"
@@ -16,7 +10,6 @@ presets:
     low-particle: "CLOUD"
     high-particle: "SOUL_FIRE_FLAME"
 
-  # Cadena de ADN brillante
   dna_helix:
     render-mode: "mixed"
     shape: "helix"
@@ -27,7 +20,6 @@ presets:
     low-particle: "WITCH_SPELL"
     high-particle: "GLOW"
 
-  # Esfera galáctica que late con el bajo
   cosmic_sphere:
     render-mode: "particles"
     shape: "sphere"
@@ -35,7 +27,6 @@ presets:
     low-particle: "PORTAL"
     high-particle: "END_ROD"
 
-  # Efecto de ondas boreales
   aurora_wave:
     render-mode: "mixed"
     shape: "wave"
@@ -47,7 +38,6 @@ presets:
     low-particle: "SOUL_FIRE_FLAME"
     high-particle: "TOTEM"
 
-  # Anillo de fuego pulsante
   inferno_ring:
     render-mode: "mixed"
     shape: "pulse_ring"
@@ -59,7 +49,6 @@ presets:
     low-particle: "FLAME"
     high-particle: "LAVA"
 
-  # Corazón latente (Para canciones lentas)
   love_beats:
     render-mode: "particles"
     shape: "heart"
@@ -67,7 +56,6 @@ presets:
     low-particle: "HEART"
     high-particle: "HAPPY_VILLAGER"
 
-  # Espiral náutica rotatoria
   nautilus_spiral:
     render-mode: "mixed"
     shape: "spiral"
@@ -78,7 +66,6 @@ presets:
     low-particle: "WATER_WAKE"
     high-particle: "DRIP_WATER"
 
-  # Línea de neón clásica
   neon_line:
     render-mode: "mixed"
     shape: "line"
@@ -89,12 +76,6 @@ presets:
     low-particle: "HAPPY_VILLAGER"
     high-particle: "COMPOSTER"
 
-  # =================================================+
-  # NUEVO: MINIJUEGO DE PLATAFORMAS FLOTANTES
-  # =================================================+
-  # =================================================+
-  # NUEVO: MINIJUEGO DE PLATAFORMAS FLOTANTES
-  # =================================================+
   neon_platforms:
     render-mode: "mixed"
     shape: "spiral"
@@ -107,16 +88,23 @@ presets:
     low-particle: "END_ROD"
     high-particle: "GLOW"
 
-  # =================================================+
-  # NUEVO: MODO DE VUELO CON ELYTRAS (Mario Kart)
-  # =================================================+
-  elytra_race:
-    render-mode: "elytra"           # <--- ESTO ACTIVA EL NUEVO MODO MÁGICO
+  player_groove:
+    render-mode: "walk"
     shape: "ring"
-    radius: 6.0                     # Tamaño del anillo
+    radius: 4.0
+    main-block: "MAGENTA_GLAZED_TERRACOTTA"
+    accent-block: "PURPLE_CONCRETE"
+    hit-block: "SHROOMLIGHT"
+    low-particle: "NOTE"
+    high-particle: "ELECTRIC_SPARK"
+
+  elytra_race:
+    render-mode: "elytra"
+    shape: "ring"
+    radius: 6.0
     platforms: false
-    main-block: "SEA_LANTERN"       # Anillos mágicos de luz
+    main-block: "SEA_LANTERN"
     accent-block: "GLOWSTONE"
     hit-block: "OCHRE_FROGLIGHT"
-    low-particle: "END_ROD"
-    high-particle: "GLOW"
+    low-particle: "SOUL_FIRE_FLAME"
+    high-particle: "END_ROD"

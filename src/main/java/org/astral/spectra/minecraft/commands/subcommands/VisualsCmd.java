@@ -4,19 +4,21 @@ import org.astral.spectra.minecraft.SpectraPlugin;
 import org.astral.spectra.minecraft.config.VisualsConfig.VisualPreset;
 import org.astral.spectra.minecraft.events.visuals.VisualizerData;
 import org.astral.spectra.minecraft.events.visuals.VisualizerManager;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.jspecify.annotations.NonNull;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class VisualsCmd implements SubCommand {
+public final class VisualsCmd implements SubCommand {
     private final SpectraPlugin plugin;
 
     public VisualsCmd(SpectraPlugin plugin) { this.plugin = plugin; }
 
-    @Override public String getName() { return "visuals"; }
+    @Override public @NonNull String getName() { return "visuals"; }
 
     @Override
     public void execute(CommandSender sender, String[] args) {
@@ -33,7 +35,7 @@ public class VisualsCmd implements SubCommand {
         String sub = args[1].toLowerCase();
 
         if (sub.equals("list")) {
-            sender.sendMessage("§eVisualizadores activos en el mundo:");
+            sender.sendMessage("§eVisualizadores activos:");
             VisualizerManager.getAllVisualizers().forEach(v ->
                     sender.sendMessage("§7- §f" + v.getName() + " §e[" + v.getPresetName() + "] " + (v.isPersistent() ? "§a(Guardado)" : "§b(Temporal)")));
             return;
@@ -42,10 +44,10 @@ public class VisualsCmd implements SubCommand {
         if (sub.equals("stop") || sub.equals("remove")) {
             if (args.length > 2) {
                 VisualizerManager.stop(args[2]);
-                sender.sendMessage("§cVisualizador '" + args[2] + "' detenido y removido.");
+                sender.sendMessage("§cVisualizador '" + args[2] + "' detenido.");
             } else {
                 VisualizerManager.stopAll();
-                sender.sendMessage("§cTodos los visualizadores temporales han sido detenidos.");
+                sender.sendMessage("§cTodos los visualizadores temporales detenidos.");
             }
             return;
         }
@@ -54,7 +56,7 @@ public class VisualsCmd implements SubCommand {
         int offset = isPermanent ? 1 : 0;
 
         if (isPermanent && args.length < 3) {
-            sender.sendMessage("§eUso: /spectra visuals create <preset> [nombre] [forma] [altura] [espaciado] [radio] [x y z]");
+            sender.sendMessage("§eUso: /spectra visuals create <preset> [targets/nombre] ...");
             return;
         }
 
@@ -62,28 +64,76 @@ public class VisualsCmd implements SubCommand {
         VisualPreset base = plugin.getConfigManager().getVisualsConfig().getPresetsMap().get(presetKey.toLowerCase());
 
         if (base == null) {
-            sender.sendMessage("§cEl preset '" + presetKey + "' no existe en presets.yml");
+            sender.sendMessage("§cEl preset '" + presetKey + "' no existe.");
             return;
         }
 
         VisualPreset custom = new VisualPreset(base);
+        Set<UUID> targets = new HashSet<>();
+        int currentIndex = 2 + offset;
 
-        String customName = (args.length > 2 + offset) ? args[2 + offset] : (isPermanent ? "Saved_" : "Vis_") + System.currentTimeMillis();
-        if (args.length > 3 + offset) custom.setShape(args[3 + offset].toLowerCase());
-        if (args.length > 4 + offset) custom.setMaxHeight(tryParseInt(args[4 + offset], custom.getMaxHeight()));
-        if (args.length > 5 + offset) custom.setSpacing(tryParseDouble(args[5 + offset], custom.getSpacing()));
-        if (args.length > 6 + offset) custom.setRadius(tryParseDouble(args[6 + offset], custom.getRadius()));
+        String mode = base.getRenderMode().toLowerCase();
+        boolean isPlayerCentric = mode.equals("walk") || mode.equals("elytra") || mode.equals("player");
+
+        if (isPlayerCentric) {
+            boolean foundTarget = false;
+            if (args.length > currentIndex) {
+                String selector = args[currentIndex];
+                if (selector.startsWith("@")) {
+                    try {
+                        for (Entity e : Bukkit.selectEntities(sender, selector)) {
+                            if (e instanceof Player p) targets.add(p.getUniqueId());
+                        }
+                        foundTarget = true;
+                    } catch (Exception ignored) {}
+                } else {
+                    Player targetPlayer = Bukkit.getPlayer(selector);
+                    if (targetPlayer != null) {
+                        targets.add(targetPlayer.getUniqueId());
+                        foundTarget = true;
+                    }
+                }
+            }
+
+            if (targets.isEmpty()) {
+                targets.add(player.getUniqueId());
+            }
+
+            if (foundTarget) {
+                currentIndex++;
+            }
+        }
+
+        String customName = (args.length > currentIndex) ? args[currentIndex] : (isPermanent ? "Saved_" : "Vis_") + System.currentTimeMillis();
+        currentIndex++;
+
+        if (args.length > currentIndex) custom.setShape(args[currentIndex].toLowerCase());
+        currentIndex++;
+
+        if (args.length > currentIndex) custom.setMaxHeight(tryParseInt(args[currentIndex], custom.getMaxHeight()));
+        currentIndex++;
+
+        if (args.length > currentIndex) custom.setSpacing(tryParseDouble(args[currentIndex], custom.getSpacing()));
+        currentIndex++;
+
+        if (args.length > currentIndex) custom.setRadius(tryParseDouble(args[currentIndex], custom.getRadius()));
+        currentIndex++;
 
         Location loc = player.getLocation();
-        if (args.length >= 10 + offset) {
-            double x = parseCoord(args[7 + offset], loc.getX());
-            double y = parseCoord(args[8 + offset], loc.getY());
-            double z = parseCoord(args[9 + offset], loc.getZ());
+        if (args.length >= currentIndex + 2) {
+            double x = parseCoord(args[currentIndex - 3], loc.getX());
+            double y = parseCoord(args[currentIndex - 2], loc.getY());
+            double z = parseCoord(args[currentIndex - 1], loc.getZ());
             loc = new Location(player.getWorld(), x, y, z, loc.getYaw(), 0);
         }
 
-        String finalName = VisualizerManager.start(customName, presetKey, custom, loc, isPermanent);
-        sender.sendMessage("§aVisualizador " + (isPermanent ? "§lPERMANENTE" : "§bTEMPORAL") + " §ainiciado: §f" + finalName);
+        String finalName = VisualizerManager.start(customName, presetKey, custom, loc, isPermanent, targets);
+
+        if (isPlayerCentric) {
+            sender.sendMessage("§aVisualizador iniciado: §f" + finalName + " §a(Objetivos: " + targets.size() + ")");
+        } else {
+            sender.sendMessage("§aVisualizador iniciado: §f" + finalName);
+        }
     }
 
     private double parseCoord(@NonNull String val, double rel) {
@@ -107,8 +157,9 @@ public class VisualsCmd implements SubCommand {
             return list;
         }
 
+        String sub = args[1].toLowerCase();
+
         if (args.length == 3) {
-            String sub = args[1].toLowerCase();
             if (sub.equals("create")) {
                 return new ArrayList<>(plugin.getConfigManager().getVisualsConfig().getPresetsMap().keySet());
             } else if (sub.equals("stop") || sub.equals("remove")) {
@@ -117,6 +168,44 @@ public class VisualsCmd implements SubCommand {
                         .collect(Collectors.toList());
             }
         }
+
+        boolean isPermanent = sub.equals("create");
+        int offset = isPermanent ? 1 : 0;
+        String presetKey = isPermanent ? args[2].toLowerCase() : sub;
+
+        VisualPreset preset = plugin.getConfigManager().getVisualsConfig().getPresetsMap().get(presetKey);
+        if (preset == null) return List.of();
+
+        String mode = preset.getRenderMode().toLowerCase();
+        boolean isPlayerCentric = mode.equals("walk") || mode.equals("elytra") || mode.equals("player");
+
+        int indexToCheck = 3 + offset;
+
+        if (args.length == indexToCheck) {
+            if (isPlayerCentric) {
+                List<String> list = new ArrayList<>(List.of("@a", "@p", "@r"));
+                list.addAll(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList());
+                return list;
+            } else {
+                return List.of("<nombre>");
+            }
+        }
+
+        if (isPlayerCentric) {
+            String potentialSelector = args[indexToCheck - 1];
+            if (potentialSelector.startsWith("@") || Bukkit.getPlayer(potentialSelector) != null) {
+                indexToCheck++;
+            }
+        }
+
+        if (args.length == indexToCheck) return List.of("<nombre>");
+        if (args.length == indexToCheck + 1) return List.of("<forma>");
+        if (args.length == indexToCheck + 2) return List.of("<altura>");
+        if (args.length == indexToCheck + 3) return List.of("<espaciado>");
+        if (args.length == indexToCheck + 4) return List.of("<radio>");
+        if (args.length == indexToCheck + 5) return List.of("<x>");
+        if (args.length == indexToCheck + 6) return List.of("<y>");
+        if (args.length == indexToCheck + 7) return List.of("<z>");
 
         return List.of();
     }
