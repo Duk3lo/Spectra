@@ -4,31 +4,37 @@ presets:
     shape: "tornado"
     radius: 6.0
     max-height: 20
+    bar-count: 32
     main-block: "BLUE_STAINED_GLASS"
     accent-block: "CYAN_STAINED_GLASS"
     hit-block: "WHITE_CONCRETE"
     low-particle: "CLOUD"
     high-particle: "SOUL_FIRE_FLAME"
     debris: true
+    glow: true
 
   dna_helix:
     render-mode: "mixed"
     shape: "helix"
     radius: 4.0
     max-height: 8
+    bar-count: 24
     main-block: "SEA_LANTERN"
     accent-block: "WHITE_STAINED_GLASS"
     low-particle: "WITCH_SPELL"
     high-particle: "GLOW"
     debris: false
+    glow: true
 
   cosmic_sphere:
     render-mode: "particles"
     shape: "sphere"
     radius: 8.0
+    bar-count: 64
     low-particle: "PORTAL"
     high-particle: "END_ROD"
     debris: false
+    glow: false
 
   aurora_wave:
     render-mode: "mixed"
@@ -36,82 +42,97 @@ presets:
     radius: 1.0
     spacing: 1.2
     max-height: 15
+    bar-count: 40
     main-block: "CYAN_CONCRETE"
     accent-block: "BLUE_CONCRETE"
     low-particle: "SOUL_FIRE_FLAME"
     high-particle: "TOTEM"
     debris: false
+    glow: true
 
   inferno_ring:
     render-mode: "mixed"
     shape: "pulse_ring"
     radius: 10.0
     max-height: 12
+    bar-count: 36
     main-block: "MAGMA_BLOCK"
     accent-block: "OBSIDIAN"
     hit-block: "GOLD_BLOCK"
     low-particle: "FLAME"
     high-particle: "LAVA"
     debris: true
+    glow: true
 
   love_beats:
     render-mode: "particles"
     shape: "heart"
     radius: 3.0
+    bar-count: 32
     low-particle: "HEART"
     high-particle: "HAPPY_VILLAGER"
     debris: false
+    glow: false
 
   nautilus_spiral:
     render-mode: "mixed"
     shape: "spiral"
     radius: 12.0
     max-height: 5
+    bar-count: 48
     main-block: "PRISMARINE_BRICKS"
     accent-block: "DARK_PRISMARINE"
     low-particle: "WATER_WAKE"
     high-particle: "DRIP_WATER"
     debris: false
+    glow: true
 
   neon_line:
     render-mode: "mixed"
     shape: "line"
     spacing: 1.0
     max-height: 25
+    bar-count: 50
     main-block: "LIME_STAINED_GLASS"
     accent-block: "GREEN_STAINED_GLASS"
     low-particle: "HAPPY_VILLAGER"
     high-particle: "COMPOSTER"
     debris: false
+    glow: true
 
   neon_platforms:
     render-mode: "mixed"
     shape: "spiral"
     radius: 8.0
     max-height: 8
+    bar-count: 24
     platforms: true
     main-block: "SEA_LANTERN"
     accent-block: "GLOWSTONE"
     hit-block: "OCHRE_FROGLIGHT"
     low-particle: "END_ROD"
     high-particle: "GLOW"
-    debris: false
+    debris: true
+    glow: true
 
   player_groove:
     render-mode: "walk"
     shape: "ring"
     radius: 4.0
+    bar-count: 20
     main-block: "MAGENTA_GLAZED_TERRACOTTA"
     accent-block: "PURPLE_CONCRETE"
     hit-block: "SHROOMLIGHT"
     low-particle: "NOTE"
     high-particle: "ELECTRIC_SPARK"
     debris: true
+    glow: true
 
   elytra_race:
     render-mode: "elytra"
     shape: "ring"
     radius: 6.0
+    bar-count: 24
     platforms: false
     main-block: "SEA_LANTERN"
     accent-block: "GLOWSTONE"
@@ -119,3 +140,4 @@ presets:
     low-particle: "SOUL_FIRE_FLAME"
     high-particle: "END_ROD"
     debris: true
+    glow: true

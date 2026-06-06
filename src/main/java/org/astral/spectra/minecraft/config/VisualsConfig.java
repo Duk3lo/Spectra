@@ -26,6 +26,8 @@ public final class VisualsConfig {
         p.radius = sec.getDouble("radius", 6.0);
         p.platforms = sec.getBoolean("platforms", false);
         p.debris = sec.getBoolean("debris", true);
+        p.glow = sec.getBoolean("glow", true);
+        p.bars = sec.getInt("bar-count", 0);
 
         presetsMap.put(name.toLowerCase(), p);
     }
@@ -50,8 +52,10 @@ public final class VisualsConfig {
         public Particle lowParticle = Particle.FIREWORK, highParticle = Particle.END_ROD;
         public double spacing = 1.0, radius = 6.0;
         public int maxHeight = 10;
+        public int bars = 0;
         public boolean platforms = false;
         public boolean debris = true;
+        public boolean glow = true;
 
         public VisualPreset() {}
         public VisualPreset(@NonNull VisualPreset other) {
@@ -61,6 +65,8 @@ public final class VisualsConfig {
             this.spacing = other.spacing; this.radius = other.radius; this.maxHeight = other.maxHeight;
             this.platforms = other.platforms;
             this.debris = other.debris;
+            this.glow = other.glow;
+            this.bars = other.bars;
         }
 
         public String getRenderMode() { return renderMode; }
@@ -80,5 +86,9 @@ public final class VisualsConfig {
         public boolean isPlatforms() { return platforms; }
         public boolean isDebris() { return debris; }
         public void setDebris(boolean d) { this.debris = d; }
+        public boolean isGlow() { return glow; }
+        public void setGlow(boolean g) { this.glow = g; }
+        public int getBars() { return bars; }
+        public void setBars(int b) { this.bars = b; }
     }
 }

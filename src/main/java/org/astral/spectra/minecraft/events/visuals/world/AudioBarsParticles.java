@@ -13,29 +13,32 @@ import org.jspecify.annotations.NonNull;
 public final class AudioBarsParticles {
 
     public static void spawn(@NonNull VisualizerData data, float @NonNull [] bars) {
-        VisualPreset preset = data.getPreset();
         if (bars.length == 0) return;
+        VisualPreset preset = data.getPreset();
 
-        double rotationAngle = Math.toRadians(-data.getYaw());
+        double rotationYaw = Math.toRadians(data.getPos().getYaw() + 90.0);
+        int totalBars = preset.getBars() > 0 ? preset.getBars() : bars.length;
+        double step = (double) bars.length / totalBars;
 
-        for (int i = 0; i < bars.length; i++) {
-            float val = Math.clamp(bars[i], 0, 1);
+        for (int i = 0; i < totalBars; i++) {
+            int index = (int) (i * step);
+            if (index >= bars.length) index = bars.length - 1;
+
+            float val = Math.clamp(bars[index], 0, 1);
             if (val <= 0.05f) continue;
 
-            Vector offset = VisualMath.getOffset(preset.getShape(), i, bars.length, preset.getRadius(), val, preset.getSpacing(), preset.getMaxHeight());
-
-            offset.rotateAroundY(rotationAngle);
+            Vector offset = VisualMath.getOffset(preset.getShape(), i, totalBars, preset.getRadius(), val, preset.getSpacing(), preset.getMaxHeight());
+            offset.rotateAroundY(rotationYaw);
 
             Location base = data.getPos().clone().add(offset);
             double height = val * preset.getMaxHeight();
             Location top = base.clone().add(0, height, 0);
 
-            Color dynColor = VisualMath.getDynamicColor(i, bars.length);
+            Color dynColor = VisualMath.getDynamicColor(i, totalBars);
 
             double localSpiral = VisualMath.globalPhase * 5.0 + i;
             double spiralX = Math.cos(localSpiral) * 0.6;
             double spiralZ = Math.sin(localSpiral) * 0.6;
-
             double floatUp = (VisualMath.globalPhase * 3.0 + (i * 0.2)) % 3.0;
 
             Location spiralLoc = top.clone().add(spiralX, floatUp, spiralZ);
@@ -47,22 +50,27 @@ public final class AudioBarsParticles {
     }
 
     public static void spawnBeatEffect(@NonNull VisualizerData data, float @NonNull [] bars) {
+        if (bars.length == 0) return;
         VisualPreset preset = data.getPreset();
         float intensity = AudioAPI.getKickIntensity();
-        double rotationAngle = Math.toRadians(-data.getYaw());
+        double rotationYaw = Math.toRadians(data.getPos().getYaw() + 90.0);
+        int totalBars = preset.getBars() > 0 ? preset.getBars() : bars.length;
+        double step = (double) bars.length / totalBars;
 
-        for (int i = 0; i < bars.length; i++) {
-            float val = Math.clamp(bars[i], 0, 1);
+        for (int i = 0; i < totalBars; i++) {
+            int index = (int) (i * step);
+            if (index >= bars.length) index = bars.length - 1;
+
+            float val = Math.clamp(bars[index], 0, 1);
             if (val <= 0.1f) continue;
 
-            Vector offset = VisualMath.getOffset(preset.getShape(), i, bars.length, preset.getRadius(), val, preset.getSpacing(), preset.getMaxHeight());
-
-            offset.rotateAroundY(rotationAngle);
+            Vector offset = VisualMath.getOffset(preset.getShape(), i, totalBars, preset.getRadius(), val, preset.getSpacing(), preset.getMaxHeight());
+            offset.rotateAroundY(rotationYaw);
 
             Location top = data.getPos().clone().add(offset).add(0, val * preset.getMaxHeight(), 0);
 
             if (intensity > 0.6f) {
-                org.bukkit.Color beatColor = VisualMath.getDynamicColor(i, bars.length);
+                org.bukkit.Color beatColor = VisualMath.getDynamicColor(i, totalBars);
                 spawnColored(top, beatColor, 1.5f + intensity, 3);
             }
         }
