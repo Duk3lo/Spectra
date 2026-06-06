@@ -8,6 +8,7 @@ import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jspecify.annotations.NonNull;
+
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -61,6 +62,7 @@ public final class VisualizerManager {
         dataConfig.set(path + ".height", data.getPreset().getMaxHeight());
         dataConfig.set(path + ".radius", data.getPreset().getRadius());
         dataConfig.set(path + ".spacing", data.getPreset().getSpacing());
+        dataConfig.set(path + ".debris", data.getPreset().isDebris());
         dataConfig.set(path + ".location", data.getPos());
         dataConfig.set(path + ".yaw", data.getYaw());
 
@@ -86,6 +88,7 @@ public final class VisualizerManager {
             String pName = section.getString(key + ".preset");
             Location loc = section.getLocation(key + ".location");
             float yaw = (float) section.getDouble(key + ".yaw", 0.0);
+
             VisualPreset base = SpectraPlugin.getInstance().getConfigManager().getVisualsConfig().getPresetsMap().get(pName);
             if (base != null && loc != null) {
                 VisualPreset custom = new VisualPreset(base);
@@ -93,6 +96,7 @@ public final class VisualizerManager {
                 custom.setMaxHeight(section.getInt(key + ".height", base.getMaxHeight()));
                 custom.setRadius(section.getDouble(key + ".radius", base.getRadius()));
                 custom.setSpacing(section.getDouble(key + ".spacing", base.getSpacing()));
+                custom.setDebris(section.getBoolean(key + ".debris", base.isDebris()));
 
                 VisualizerData data = new VisualizerData(key, pName, custom, loc, yaw);
                 data.setPersistent(true);

@@ -120,10 +120,10 @@ public final class VisualsCmd implements SubCommand {
         currentIndex++;
 
         Location loc = player.getLocation();
-        if (args.length >= currentIndex + 2) {
-            double x = parseCoord(args[currentIndex - 3], loc.getX());
-            double y = parseCoord(args[currentIndex - 2], loc.getY());
-            double z = parseCoord(args[currentIndex - 1], loc.getZ());
+        if (args.length > currentIndex + 2) {
+            double x = parseCoord(args[currentIndex], loc.getX());
+            double y = parseCoord(args[currentIndex + 1], loc.getY());
+            double z = parseCoord(args[currentIndex + 2], loc.getZ());
             loc = new Location(player.getWorld(), x, y, z, loc.getYaw(), 0);
         }
 

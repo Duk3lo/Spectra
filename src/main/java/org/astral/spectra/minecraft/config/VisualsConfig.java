@@ -9,7 +9,7 @@ import java.util.*;
 public final class VisualsConfig {
     private final Map<String, VisualPreset> presetsMap = new LinkedHashMap<>();
 
-    public void loadPresetFromYaml(String name, @NonNull ConfigurationSection sec) {
+    public void loadPresetFromYaml(@NonNull String name, @NonNull ConfigurationSection sec) {
         VisualPreset p = new VisualPreset();
         p.renderMode = sec.getString("render-mode", "mixed");
         p.shape = sec.getString("shape", "line");
@@ -25,6 +25,7 @@ public final class VisualsConfig {
         p.spacing = sec.getDouble("spacing", 1.0);
         p.radius = sec.getDouble("radius", 6.0);
         p.platforms = sec.getBoolean("platforms", false);
+        p.debris = sec.getBoolean("debris", true);
 
         presetsMap.put(name.toLowerCase(), p);
     }
@@ -50,6 +51,7 @@ public final class VisualsConfig {
         public double spacing = 1.0, radius = 6.0;
         public int maxHeight = 10;
         public boolean platforms = false;
+        public boolean debris = true;
 
         public VisualPreset() {}
         public VisualPreset(@NonNull VisualPreset other) {
@@ -58,6 +60,7 @@ public final class VisualsConfig {
             this.lowParticle = other.lowParticle; this.highParticle = other.highParticle;
             this.spacing = other.spacing; this.radius = other.radius; this.maxHeight = other.maxHeight;
             this.platforms = other.platforms;
+            this.debris = other.debris;
         }
 
         public String getRenderMode() { return renderMode; }
@@ -75,5 +78,7 @@ public final class VisualsConfig {
         public Particle getLowParticle() { return lowParticle; }
         public Particle getHighParticle() { return highParticle; }
         public boolean isPlatforms() { return platforms; }
+        public boolean isDebris() { return debris; }
+        public void setDebris(boolean d) { this.debris = d; }
     }
 }

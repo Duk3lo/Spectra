@@ -9,6 +9,7 @@ presets:
     hit-block: "WHITE_CONCRETE"
     low-particle: "CLOUD"
     high-particle: "SOUL_FIRE_FLAME"
+    debris: true
 
   dna_helix:
     render-mode: "mixed"
@@ -19,6 +20,7 @@ presets:
     accent-block: "WHITE_STAINED_GLASS"
     low-particle: "WITCH_SPELL"
     high-particle: "GLOW"
+    debris: false
 
   cosmic_sphere:
     render-mode: "particles"
@@ -26,6 +28,7 @@ presets:
     radius: 8.0
     low-particle: "PORTAL"
     high-particle: "END_ROD"
+    debris: false
 
   aurora_wave:
     render-mode: "mixed"
@@ -37,6 +40,7 @@ presets:
     accent-block: "BLUE_CONCRETE"
     low-particle: "SOUL_FIRE_FLAME"
     high-particle: "TOTEM"
+    debris: false
 
   inferno_ring:
     render-mode: "mixed"
@@ -48,6 +52,7 @@ presets:
     hit-block: "GOLD_BLOCK"
     low-particle: "FLAME"
     high-particle: "LAVA"
+    debris: true
 
   love_beats:
     render-mode: "particles"
@@ -55,6 +60,7 @@ presets:
     radius: 3.0
     low-particle: "HEART"
     high-particle: "HAPPY_VILLAGER"
+    debris: false
 
   nautilus_spiral:
     render-mode: "mixed"
@@ -65,6 +71,7 @@ presets:
     accent-block: "DARK_PRISMARINE"
     low-particle: "WATER_WAKE"
     high-particle: "DRIP_WATER"
+    debris: false
 
   neon_line:
     render-mode: "mixed"
@@ -75,6 +82,7 @@ presets:
     accent-block: "GREEN_STAINED_GLASS"
     low-particle: "HAPPY_VILLAGER"
     high-particle: "COMPOSTER"
+    debris: false
 
   neon_platforms:
     render-mode: "mixed"
@@ -87,6 +95,7 @@ presets:
     hit-block: "OCHRE_FROGLIGHT"
     low-particle: "END_ROD"
     high-particle: "GLOW"
+    debris: false
 
   player_groove:
     render-mode: "walk"
@@ -97,6 +106,7 @@ presets:
     hit-block: "SHROOMLIGHT"
     low-particle: "NOTE"
     high-particle: "ELECTRIC_SPARK"
+    debris: true
 
   elytra_race:
     render-mode: "elytra"
@@ -108,3 +118,4 @@ presets:
     hit-block: "OCHRE_FROGLIGHT"
     low-particle: "SOUL_FIRE_FLAME"
     high-particle: "END_ROD"
+    debris: true
