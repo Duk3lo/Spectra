@@ -1,1 +1,1 @@
-rootProject.name = "Spectyle"
+rootProject.name = "Spectra"

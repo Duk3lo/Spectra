@@ -118,12 +118,11 @@ public final class WebVisualizer {
     }
 
     public void sendVolumeUpdate(float volume) {
-        if (server == null || clients.isEmpty()) return;
-
         float v = Math.clamp(volume, 0.0f, 1.0f);
-        if (Math.abs(v - lastBroadcastVolume) < 0.001f) return;
 
+        if (Math.abs(v - lastBroadcastVolume) < 0.001f) return;
         lastBroadcastVolume = v;
+        if (server == null || clients.isEmpty()) return;
 
         String msg = "{\"type\":\"volume_change\", \"value\":" +
                 String.format(Locale.US, "%.2f", v) + "}";

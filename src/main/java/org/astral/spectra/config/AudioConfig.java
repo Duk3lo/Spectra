@@ -71,7 +71,7 @@ public final class AudioConfig {
         private float bassJumpThreshold = 1.35f;
         private float snareJumpThreshold = 1.25f;
         private float hatJumpThreshold = 1.15f;
-        private long bassCooldownMs = 110; // Reducido para Breakcore
+        private long bassCooldownMs = 110;
         private long snareCooldownMs = 80;
         private long hatCooldownMs = 50;
 

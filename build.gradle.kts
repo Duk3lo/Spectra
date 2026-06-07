@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "org.astral.spectra"
-version = "1.0-SNAPSHOT"
+version = "0.0.1"
 
 java {
     toolchain {
@@ -68,6 +68,13 @@ tasks.withType<JavaExec> {
 tasks.shadowJar {
     archiveClassifier.set("")
     mergeServiceFiles()
+
+    //-Excludes for Minecraft
+    exclude("org/astral/spectra/Main.class")
+    exclude("org/astral/spectra/ui/**")
+    exclude("org/astral/spectra/hytale/**")
+    exclude("manifest.json")
+    exclude("musics/**")
 
     manifest {
         attributes(

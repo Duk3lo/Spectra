@@ -10,6 +10,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.jspecify.annotations.NonNull;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -113,8 +114,17 @@ public final class VisualsCmd implements SubCommand {
                 currentIndex++;
             }
         }
+        Set<String> takenNames = VisualizerManager.getAllVisualizers().stream()
+                .map(v -> v.getName().toLowerCase())
+                .collect(Collectors.toSet());
+        String requestedName = (args.length > currentIndex) ? args[currentIndex] : presetKey;
+        String customName = requestedName;
+        int counter = 1;
 
-        String customName = (args.length > currentIndex) ? args[currentIndex] : (isPermanent ? "Saved_" : "Vis_") + System.currentTimeMillis();
+        while (takenNames.contains(customName.toLowerCase())) {
+            customName = requestedName + "_" + counter;
+            counter++;
+        }
         currentIndex++;
 
         if (args.length > currentIndex) custom.setShape(args[currentIndex].toLowerCase());

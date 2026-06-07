@@ -33,15 +33,31 @@ public final class SpectraConfigManager {
         this.webVisualizerPort = config.getInt("web-visualizer.port", 8081);
 
         this.audioConfig = new AudioConfig();
+
         AudioConfig.General gen = new AudioConfig.General();
         gen.setCurrentVolume((float) config.getDouble("audio.general.current-volume", 1.0));
         gen.setUpdateRateMs(config.getInt("audio.general.update-rate-ms", 16));
+        gen.setDelayedTask(config.getString("audio.general.delayed-task", "0s"));
         audioConfig.setGeneral(gen);
 
         AudioConfig.Visualizer vis = new AudioConfig.Visualizer();
         vis.setFftSize(config.getInt("audio.visualizer.fft-size", 2048));
         vis.setNumBars(config.getInt("audio.visualizer.num-bars", 64));
         audioConfig.setVisualizer(vis);
+
+        AudioConfig.Smoothing smoothing = new AudioConfig.Smoothing();
+        smoothing.setAttack((float) config.getDouble("audio.smoothing.attack", 0.85));
+        smoothing.setDecay((float) config.getDouble("audio.smoothing.decay", 0.18));
+        audioConfig.setSmoothing(smoothing);
+
+        AudioConfig.BeatDetection beat = new AudioConfig.BeatDetection();
+        beat.setBassJumpThreshold((float) config.getDouble("audio.beat-detection.bass-jump-threshold", 1.35));
+        beat.setSnareJumpThreshold((float) config.getDouble("audio.beat-detection.snare-jump-threshold", 1.25));
+        beat.setHatJumpThreshold((float) config.getDouble("audio.beat-detection.hat-jump-threshold", 1.15));
+        beat.setBassCooldownMs(config.getLong("audio.beat-detection.bass-cooldown-ms", 110));
+        beat.setSnareCooldownMs(config.getLong("audio.beat-detection.snare-cooldown-ms", 80));
+        beat.setHatCooldownMs(config.getLong("audio.beat-detection.hat-cooldown-ms", 50));
+        audioConfig.setBeatDetection(beat);
 
         File presetsFile = new File(plugin.getDataFolder(), "presets.yml");
         if (!presetsFile.exists()) plugin.saveResource("presets.yml", false);

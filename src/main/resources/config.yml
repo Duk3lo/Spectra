@@ -1,6 +1,7 @@
 web-server:
   ip: "127.0.0.1"
   port: 8080
+
 web-visualizer:
   port: 8081
 
@@ -8,6 +9,20 @@ audio:
   general:
     current-volume: 0.0
     update-rate-ms: 16
+    delayed-task: "0s"
+
   visualizer:
     fft-size: 2048
     num-bars: 64
+
+  smoothing:
+    attack: 0.85
+    decay: 0.18
+
+  beat-detection:
+    bass-jump-threshold: 1.35
+    snare-jump-threshold: 1.25
+    hat-jump-threshold: 1.15
+    bass-cooldown-ms: 110
+    snare-cooldown-ms: 80
+    hat-cooldown-ms: 50
