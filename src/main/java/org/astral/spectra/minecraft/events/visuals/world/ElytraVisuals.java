@@ -6,7 +6,7 @@ import org.astral.spectra.minecraft.config.VisualsConfig.VisualPreset;
 import org.astral.spectra.minecraft.utils.GlobalKeys;
 import org.astral.spectra.minecraft.utils.SchedulerUtil;
 import org.astral.spectra.minecraft.utils.VisualMath;
-import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.FallingBlock;
@@ -21,7 +21,7 @@ public final class ElytraVisuals {
         Location loc = player.getEyeLocation();
         if (loc.getWorld() == null) return;
 
-        SchedulerUtil.runOnRegion(SpectraPlugin.getInstance(), loc, () -> {
+        SchedulerUtil.runOnEntity(SpectraPlugin.getInstance(), player, () -> {
             try {
                 if (!player.isGliding()) return;
 
@@ -36,7 +36,7 @@ public final class ElytraVisuals {
                 Vector up = VisualMath.getUpVector(dir, right);
 
                 float energy = AudioAPI.getGlobalEnergy();
-                org.bukkit.Color dynColor = VisualMath.getDynamicColor((int) (Math.random() * 10), 10);
+                Color dynColor = VisualMath.getDynamicColor((int) (Math.random() * 10), 10);
                 Material blockMat = preset.getMainBlock();
 
                 Location trailLoc = loc.clone().subtract(dir.clone().multiply(1.5));
@@ -70,7 +70,7 @@ public final class ElytraVisuals {
                         Location pLoc = ringCenter.clone().add(rOffset);
 
                         AudioBarsParticles.spawnColored(pLoc, dynColor, 2.5f, 2);
-                        if (i % 3 == 0) {
+                        if (preset.isDebris() && i % 3 == 0) {
                             Vector explosionDir = rOffset.clone().normalize().multiply(0.2 + (energy * 0.4));
                             spawnGhostBlock(pLoc, blockMat, explosionDir, dynColor);
                         }
@@ -80,7 +80,7 @@ public final class ElytraVisuals {
         });
     }
 
-    private static void spawnGhostBlock(@NonNull Location loc, Material mat, Vector velocity, org.bukkit.Color color) {
+    private static void spawnGhostBlock(@NonNull Location loc, Material mat, Vector velocity, Color color) {
         loc.getWorld().spawn(loc, FallingBlock.class, fb -> {
             fb.setBlockData(mat.createBlockData());
             fb.setGravity(false);
@@ -89,7 +89,7 @@ public final class ElytraVisuals {
             fb.setVelocity(velocity);
 
             fb.getPersistentDataContainer().set(GlobalKeys.getDebrisKey(), PersistentDataType.BYTE, (byte) 1);
-            Bukkit.getRegionScheduler().runDelayed(SpectraPlugin.getInstance(), loc, _ -> {
+            SchedulerUtil.runDelayedOnEntity(SpectraPlugin.getInstance(), fb, () -> {
                 if (fb.isValid()) {
                     AudioBarsParticles.spawnColored(fb.getLocation(), color, 2.0f, 6);
                     fb.remove();

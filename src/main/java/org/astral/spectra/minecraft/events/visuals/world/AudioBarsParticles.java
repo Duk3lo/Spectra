@@ -70,13 +70,13 @@ public final class AudioBarsParticles {
             Location top = data.getPos().clone().add(offset).add(0, val * preset.getMaxHeight(), 0);
 
             if (intensity > 0.6f) {
-                org.bukkit.Color beatColor = VisualMath.getDynamicColor(i, totalBars);
+                Color beatColor = VisualMath.getDynamicColor(i, totalBars);
                 spawnColored(top, beatColor, 1.5f + intensity, 3);
             }
         }
     }
 
-    public static void spawnColored(Location loc, org.bukkit.Color color, float size, int count) {
+    public static void spawnColored(Location loc, Color color, float size, int count) {
         if (loc == null || loc.getWorld() == null || color == null) return;
         Particle.DustOptions dust = new Particle.DustOptions(color, size);
         loc.getWorld().spawnParticle(Particle.DUST, loc, count, 0.1, 0.1, 0.1, 0, dust);

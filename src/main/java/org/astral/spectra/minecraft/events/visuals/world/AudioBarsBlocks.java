@@ -5,8 +5,11 @@ import org.astral.spectra.minecraft.SpectraPlugin;
 import org.astral.spectra.minecraft.config.VisualsConfig.VisualPreset;
 import org.astral.spectra.minecraft.events.visuals.VisualizerData;
 import org.astral.spectra.minecraft.utils.GlobalKeys;
+import org.astral.spectra.minecraft.utils.SchedulerUtil;
 import org.astral.spectra.minecraft.utils.VisualMath;
-import org.bukkit.*;
+import org.bukkit.Color;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.persistence.PersistentDataType;
@@ -56,7 +59,7 @@ public final class AudioBarsBlocks {
             if (preset.isPlatforms()) {
                 if (isKick && val > 0.5f && i % 2 == 0) {
                     Location platLoc = barBase.clone().add(0, height, 0);
-                    org.bukkit.Color dynColor = VisualMath.getDynamicColor(i, totalBars);
+                    Color dynColor = VisualMath.getDynamicColor(i, totalBars);
                     spawnPlatform(data, platLoc, preset.getHitBlock(), dynColor);
                 }
             }
@@ -80,11 +83,14 @@ public final class AudioBarsBlocks {
                     }
 
                     Block block = loc.getBlock();
-                    if (block.getType() != mat) {
-                        block.setType(mat);
+                    Location blockLoc = block.getLocation();
+
+                    if (block.isEmpty() || data.getActiveBlocks().contains(blockLoc)) {
+                        if (block.getType() != mat) {
+                            block.setType(mat);
+                        }
+                        currentFrameBlocks.add(blockLoc);
                     }
-                    // Guardamos la locación EXACTA del bloque (coordenadas enteras) para que no haya falsos borrados
-                    currentFrameBlocks.add(block.getLocation());
                 }
 
                 if (preset.isDebris() && isKick && val > 0.85f && i % 15 == 0) {
@@ -96,7 +102,10 @@ public final class AudioBarsBlocks {
         if (!preset.isPlatforms()) {
             for (Location oldLoc : data.getActiveBlocks()) {
                 if (!currentFrameBlocks.contains(oldLoc)) {
-                    oldLoc.getBlock().setType(Material.AIR);
+                    Block b = oldLoc.getBlock();
+                    if (!b.isEmpty()) {
+                        b.setType(Material.AIR);
+                    }
                 }
             }
             data.getActiveBlocks().clear();
@@ -114,9 +123,11 @@ public final class AudioBarsBlocks {
         boolean spawnedAny = false;
         for (Location l : crossShape) {
             Block block = l.getBlock();
-            if (block.getType() == Material.AIR) {
+            Location blockLoc = block.getLocation();
+
+            if (block.isEmpty() || data.getActiveBlocks().contains(blockLoc)) {
                 block.setType(mat);
-                data.getActiveBlocks().add(block.getLocation());
+                data.getActiveBlocks().add(blockLoc);
                 spawnedAny = true;
             }
         }
@@ -125,17 +136,17 @@ public final class AudioBarsBlocks {
         AudioBarsParticles.spawnColored(loc.clone().add(0.5, 1.2, 0.5), color, 2.0f, 5);
 
         long warningTicks = 60L - 20L;
-        Bukkit.getRegionScheduler().runDelayed(SpectraPlugin.getInstance(), loc, _ -> {
+        SchedulerUtil.runDelayedOnRegion(SpectraPlugin.getInstance(), loc, () -> {
             for (Location l : crossShape) {
                 Block block = l.getBlock();
                 if (block.getType() == mat) {
                     block.setType(Material.RED_STAINED_GLASS);
-                    AudioBarsParticles.spawnColored(l.clone().add(0.5, 1.2, 0.5), org.bukkit.Color.RED, 1.5f, 3);
+                    AudioBarsParticles.spawnColored(l.clone().add(0.5, 1.2, 0.5), Color.RED, 1.5f, 3);
                 }
             }
         }, warningTicks);
 
-        Bukkit.getRegionScheduler().runDelayed(SpectraPlugin.getInstance(), loc, _ -> {
+        SchedulerUtil.runDelayedOnRegion(SpectraPlugin.getInstance(), loc, () -> {
             for (Location l : crossShape) {
                 Block block = l.getBlock();
                 if (block.getType() == Material.RED_STAINED_GLASS) {
@@ -158,9 +169,9 @@ public final class AudioBarsBlocks {
             fb.getPersistentDataContainer().set(GlobalKeys.getDebrisKey(), PersistentDataType.BYTE, (byte) 1);
             fb.setVelocity(new Vector((Math.random() - 0.5) * 0.3, 0.4 + Math.random() * 0.3, (Math.random() - 0.5) * 0.3));
 
-            Bukkit.getRegionScheduler().runDelayed(SpectraPlugin.getInstance(), loc, _ -> {
+            SchedulerUtil.runDelayedOnEntity(SpectraPlugin.getInstance(), fb, () -> {
                 if (fb.isValid()) {
-                    AudioBarsParticles.spawnColored(fb.getLocation(), org.bukkit.Color.RED, 0.8f, 2);
+                    AudioBarsParticles.spawnColored(fb.getLocation(), Color.RED, 0.8f, 2);
                     fb.remove();
                 }
             }, 100L);
@@ -168,7 +179,12 @@ public final class AudioBarsBlocks {
     }
 
     public static void clearJustBlocks(@NonNull VisualizerData data) {
-        data.getActiveBlocks().forEach(loc -> loc.getBlock().setType(Material.AIR));
+        data.getActiveBlocks().forEach(loc -> {
+            Block block = loc.getBlock();
+            if (!block.isEmpty()) {
+                block.setType(Material.AIR);
+            }
+        });
         data.getActiveBlocks().clear();
     }
 }

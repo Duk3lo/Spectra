@@ -6,7 +6,7 @@ import org.astral.spectra.minecraft.config.VisualsConfig.VisualPreset;
 import org.astral.spectra.minecraft.utils.GlobalKeys;
 import org.astral.spectra.minecraft.utils.SchedulerUtil;
 import org.astral.spectra.minecraft.utils.VisualMath;
-import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
@@ -22,7 +22,7 @@ public final class PlayerWalkVisuals {
         Location loc = player.getLocation();
         if (loc.getWorld() == null) return;
 
-        SchedulerUtil.runOnRegion(SpectraPlugin.getInstance(), loc, () -> {
+        SchedulerUtil.runOnEntity(SpectraPlugin.getInstance(), player, () -> {
             try {
                 if (player.isFlying() || player.isGliding()) return;
 
@@ -32,7 +32,7 @@ public final class PlayerWalkVisuals {
                 Vector velocity = player.getVelocity();
                 double speed = velocity.length();
                 float energy = AudioAPI.getGlobalEnergy();
-                org.bukkit.Color dynColor = VisualMath.getDynamicColor((int) (Math.random() * 10), 10);
+                Color dynColor = VisualMath.getDynamicColor((int) (Math.random() * 10), 10);
 
                 if (speed > 0.05) {
                     Location trail = loc.clone().add(0, 0.1, 0);
@@ -59,7 +59,7 @@ public final class PlayerWalkVisuals {
                     }
                 }
 
-                if (isKick && AudioAPI.getKickIntensity() > 0.6f) {
+                if (preset.isDebris() && isKick && AudioAPI.getKickIntensity() > 0.6f) {
                     int explosions = 2 + (int)(energy * 5);
 
                     for (int i = 0; i < explosions; i++) {
@@ -79,7 +79,7 @@ public final class PlayerWalkVisuals {
         });
     }
 
-    private static void spawnGroundDebris(@NonNull Location loc, Material mat, org.bukkit.Color color) {
+    private static void spawnGroundDebris(@NonNull Location loc, Material mat, Color color) {
         int blocksPerExplosion = 1 + (int)(AudioAPI.getKickIntensity() * 3);
 
         for (int i = 0; i < blocksPerExplosion; i++) {
@@ -95,7 +95,7 @@ public final class PlayerWalkVisuals {
 
                 fb.getPersistentDataContainer().set(GlobalKeys.getDebrisKey(), PersistentDataType.BYTE, (byte) 1);
 
-                Bukkit.getRegionScheduler().runDelayed(SpectraPlugin.getInstance(), loc, _ -> {
+                SchedulerUtil.runDelayedOnEntity(SpectraPlugin.getInstance(), fb, () -> {
                     if (fb.isValid()) {
                         AudioBarsParticles.spawnColored(fb.getLocation(), color, 1.5f, 4);
                         fb.remove();

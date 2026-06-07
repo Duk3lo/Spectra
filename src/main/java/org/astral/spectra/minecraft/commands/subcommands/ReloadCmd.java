@@ -30,17 +30,15 @@ public final class ReloadCmd implements SubCommand {
                 plugin.getAudioEngine().reloadConfiguration(plugin.getConfigManager().getAudioConfig());
             }
 
-            // Evaluamos si el pack realmente detectó cambios
             boolean packUpdated = plugin.getPackManager().buildPack();
 
             VisualizerManager.init(plugin);
 
-            // Solo reenviamos el pack si se generó uno nuevo
             if (packUpdated) {
                 PackUtils.sendPackToAll();
                 sender.sendMessage("§a✅ Spectra recargado. §eSe detectaron nuevos audios (Paquete reenviado).");
             } else {
-                sender.sendMessage("§a✅ Spectra recargado. §7(Audios sin cambios, no se reenvió paquete).");
+                sender.sendMessage("§a✅ Spectra recargado.");
             }
 
         } catch (Exception e) {
