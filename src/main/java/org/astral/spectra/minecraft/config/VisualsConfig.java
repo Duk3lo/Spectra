@@ -27,6 +27,7 @@ public final class VisualsConfig {
         p.platforms = sec.getBoolean("platforms", false);
         p.debris = sec.getBoolean("debris", true);
         p.glow = sec.getBoolean("glow", true);
+        p.walkBars = sec.getBoolean("walk-bars", false);
         p.bars = sec.getInt("bar-count", 0);
 
         presetsMap.put(name.toLowerCase(), p);
@@ -56,6 +57,7 @@ public final class VisualsConfig {
         public boolean platforms = false;
         public boolean debris = true;
         public boolean glow = true;
+        public boolean walkBars = false;
 
         public VisualPreset() {}
         public VisualPreset(@NonNull VisualPreset other) {
@@ -66,6 +68,7 @@ public final class VisualsConfig {
             this.platforms = other.platforms;
             this.debris = other.debris;
             this.glow = other.glow;
+            this.walkBars = other.walkBars;
             this.bars = other.bars;
         }
 
@@ -88,6 +91,8 @@ public final class VisualsConfig {
         public void setDebris(boolean d) { this.debris = d; }
         public boolean isGlow() { return glow; }
         public void setGlow(boolean g) { this.glow = g; }
+        public boolean isWalkBars() { return walkBars; }
+        public void setWalkBars(boolean w) { this.walkBars = w; }
         public int getBars() { return bars; }
         public void setBars(int b) { this.bars = b; }
     }

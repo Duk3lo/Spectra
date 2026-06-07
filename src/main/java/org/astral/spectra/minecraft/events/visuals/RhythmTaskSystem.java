@@ -57,7 +57,7 @@ public final class RhythmTaskSystem {
                     for (UUID targetId : data.getTargets()) {
                         Player p = Bukkit.getPlayer(targetId);
                         if (p != null && p.isOnline()) {
-                            PlayerWalkVisuals.draw(p, data.getPreset(), hasBeat, hasSnare, hasHat);
+                            PlayerWalkVisuals.draw(p, data.getPreset(), bars, hasBeat, hasSnare, hasHat);
                         }
                     }
                     continue;

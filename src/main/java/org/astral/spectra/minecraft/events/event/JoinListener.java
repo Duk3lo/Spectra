@@ -17,9 +17,9 @@ public final class JoinListener implements Listener {
     @EventHandler
     public void onResourcePackStatus(@NonNull PlayerResourcePackStatusEvent event) {
         switch (event.getStatus()) {
-            case SUCCESSFULLY_LOADED -> event.getPlayer().sendMessage("§a✅ Pack cargado.");
-            case DECLINED -> event.getPlayer().sendMessage("§c❌ Pack requerido.");
-            case FAILED_DOWNLOAD -> event.getPlayer().sendMessage("§c⚠️ Error de descarga.");
+            case SUCCESSFULLY_LOADED -> event.getPlayer().sendMessage("§a✅ Resource pack loaded.");
+            case DECLINED -> event.getPlayer().sendMessage("§c❌ Resource pack is required to hear the music.");
+            case FAILED_DOWNLOAD -> event.getPlayer().sendMessage("§c⚠️ Failed to download the resource pack.");
             default -> {}
         }
     }

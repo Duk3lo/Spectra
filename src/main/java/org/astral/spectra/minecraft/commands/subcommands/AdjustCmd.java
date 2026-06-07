@@ -19,17 +19,17 @@ public final class AdjustCmd implements SubCommand {
     @Override
     public void execute(@NonNull CommandSender sender, String @NonNull [] args) {
         if (!sender.hasPermission("spectra.admin")) {
-            sender.sendMessage("§cNo tienes permisos.");
+            sender.sendMessage("§cYou do not have permission to use this command.");
             return;
         }
 
         if (args.length < 2) {
-            sender.sendMessage("§eUso: /spectra adjust <milisegundos> (Ej: 500 o -500)");
+            sender.sendMessage("§eUsage: /spectra adjust <milliseconds> (e.g. 500 or -500)");
             return;
         }
 
         if (!AudioAPI.isPlaying()) {
-            sender.sendMessage("§cNo hay ninguna canción reproduciéndose.");
+            sender.sendMessage("§cNo song is currently playing.");
             return;
         }
 
@@ -40,13 +40,13 @@ public final class AdjustCmd implements SubCommand {
 
             plugin.getAudioEngine().seekTo(newTimeMs);
 
-            sender.sendMessage("§a[Spectra] Sincronización visual ajustada en §e" + msOffset + "ms§a.");
-            sender.sendMessage("§7Tiempo actual del motor: " + AudioAPI.getCurrentTimeFormatted());
+            sender.sendMessage("§a[Spectra] Visual sync adjusted by §e" + msOffset + "ms§a.");
+            sender.sendMessage("§7Current engine time: " + AudioAPI.getCurrentTimeFormatted());
 
         } catch (NumberFormatException e) {
-            sender.sendMessage("§cPor favor, ingresa un número válido en milisegundos.");
+            sender.sendMessage("§cPlease provide a valid number in milliseconds.");
         } catch (Exception e) {
-            sender.sendMessage("§cOcurrió un error al ajustar el tiempo.");
+            sender.sendMessage("§cAn error occurred while adjusting the time.");
         }
     }
 

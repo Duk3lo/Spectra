@@ -48,7 +48,7 @@ public final class SpectraPlugin extends JavaPlugin {
 
         new RhythmTaskSystem(this).start();
 
-        getLogger().info("Spectra cargado correctamente con persistencia.");
+        getLogger().info("Spectra loaded successfully.");
     }
 
     @Override

@@ -68,7 +68,7 @@ public final class VisualMath {
                 yield new Vector(Math.cos(angleMulti + globalPhase) * sRadius, 0, Math.sin(angleMulti + globalPhase) * sRadius);
             }
             case "wave" -> new Vector(i * spacing, Math.sin((i * 0.5) + globalPhase) * 3.0, 0);
-            case "circle" -> new Vector(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+            case "circle", "ring" -> new Vector(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
             default -> new Vector(i * spacing, 0, 0);
         };
     }

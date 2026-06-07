@@ -3,7 +3,7 @@ package org.astral.spectra.minecraft.commands.subcommands;
 import net.kyori.adventure.sound.Sound;
 import org.astral.spectra.audio.api.AudioAPI;
 import org.astral.spectra.minecraft.SpectraPlugin;
-import org.astral.spectra.minecraft.commands.SpectraAdminCommand;
+import org.astral.spectra.minecraft.commands.SpectraCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
@@ -22,13 +22,18 @@ public final class PlayCmd implements SubCommand {
     @Override public @NonNull String getName() { return "play"; }
 
     @Override
-    public void execute(CommandSender sender, String @NonNull [] args) {
+    public void execute(@NonNull CommandSender sender, String @NonNull [] args) {
+        if (!sender.hasPermission("spectra.admin")) {
+            sender.sendMessage("§cYou do not have permission to use this command.");
+            return;
+        }
+
         if (args.length < 2) {
-            sender.sendMessage("§cUso: /spectra play <sonido> [jugador|@a]");
+            sender.sendMessage("§cUsage: /spectra play <sound> [player|@a]");
             return;
         }
         if (AudioAPI.isPlaying()) {
-            sender.sendMessage("§cEl motor ya está reproduciendo.");
+            sender.sendMessage("§cEngine is already playing.");
             return;
         }
 
@@ -36,12 +41,12 @@ public final class PlayCmd implements SubCommand {
         Path path = plugin.getDataFolder().toPath().resolve("sounds").resolve(name + ".ogg");
 
         if (!Files.exists(path)) {
-            sender.sendMessage("§cEl sonido '§f" + name + "§c' no existe.");
+            sender.sendMessage("§cSound '§f" + name + "§c' does not exist.");
             return;
         }
 
         plugin.getAudioEngine().playSong(path);
-        SpectraAdminCommand.playersListen.clear();
+        SpectraCommand.playersListen.clear();
 
         NamespacedKey key = new NamespacedKey("astral", name);
         Sound sound = Sound.sound(key, Sound.Source.MASTER, 1f, 1f);
@@ -50,15 +55,17 @@ public final class PlayCmd implements SubCommand {
         if (target.equalsIgnoreCase("@a")) {
             Bukkit.getOnlinePlayers().forEach(p -> {
                 p.playSound(sound);
-                SpectraAdminCommand.playersListen.add(p.getUniqueId());
+                SpectraCommand.playersListen.add(p.getUniqueId());
             });
-            sender.sendMessage("§a🎶 Reproduciendo para todos.");
+            sender.sendMessage("§a🎶 Playing for everyone.");
         } else {
             Player p = Bukkit.getPlayer(target);
             if (p != null) {
                 p.playSound(sound);
-                SpectraAdminCommand.playersListen.add(p.getUniqueId());
-                sender.sendMessage("§a🎶 Reproduciendo para " + p.getName());
+                SpectraCommand.playersListen.add(p.getUniqueId());
+                sender.sendMessage("§a🎶 Playing for " + p.getName());
+            } else {
+                sender.sendMessage("§cPlayer not found.");
             }
         }
     }

@@ -16,19 +16,23 @@ public final class ImportCmd implements SubCommand {
     @Override public @NonNull String getName() { return "import"; }
 
     @Override
-    public void execute(CommandSender sender, String @NonNull [] args) {
+    public void execute(@NonNull CommandSender sender, String @NonNull [] args) {
+        if (!sender.hasPermission("spectra.admin")) {
+            sender.sendMessage("§cYou do not have permission to use this command.");
+            return;
+        }
+
         if (args.length < 3) {
-            sender.sendMessage("§eUso: /spectra import <archivo con espacios.ogg> <nombre_corto>");
+            sender.sendMessage("§eUsage: /spectra import <file name.ogg> <short_name>");
             return;
         }
 
         String targetName = args[args.length - 1];
-
         String[] fileNameParts = Arrays.copyOfRange(args, 1, args.length - 1);
         String fileName = String.join(" ", fileNameParts);
 
         if (!fileName.toLowerCase().endsWith(".ogg")) {
-            sender.sendMessage("§cEl archivo debe ser formato .ogg");
+            sender.sendMessage("§cFile must be in .ogg format");
             return;
         }
 
@@ -36,7 +40,7 @@ public final class ImportCmd implements SubCommand {
         Path dst = plugin.getDataFolder().toPath().resolve("sounds").resolve(targetName.toLowerCase() + ".ogg");
 
         if (!Files.exists(src)) {
-            sender.sendMessage("§cNo se encontró el archivo: §7" + fileName);
+            sender.sendMessage("§cFile not found: §7" + fileName);
             return;
         }
 
@@ -49,9 +53,9 @@ public final class ImportCmd implements SubCommand {
                 PackUtils.sendPackToAll();
             }
 
-            sender.sendMessage("§a✅ '" + fileName + "' importado como '" + targetName.toLowerCase() + "'.");
+            sender.sendMessage("§a✅ '" + fileName + "' successfully imported as '" + targetName.toLowerCase() + "'.");
         } catch (Exception e) {
-            sender.sendMessage("§cError al mover el archivo.");
+            sender.sendMessage("§cError moving the file.");
         }
     }
 

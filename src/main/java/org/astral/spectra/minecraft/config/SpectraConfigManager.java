@@ -61,17 +61,17 @@ public final class SpectraConfigManager {
 
     private void createDirectories() {
         if (!plugin.getDataFolder().exists() && !plugin.getDataFolder().mkdirs()) {
-            plugin.getLogger().warning("No se pudo crear la carpeta principal del plugin.");
+            plugin.getLogger().warning("Failed to create the main plugin folder.");
         }
 
         File importFolder = new File(plugin.getDataFolder(), "import");
         if (!importFolder.exists() && !importFolder.mkdirs()) {
-            plugin.getLogger().warning("No se pudo crear la carpeta import.");
+            plugin.getLogger().warning("Failed to create the import folder.");
         }
 
         File soundsFolder = new File(plugin.getDataFolder(), "sounds");
         if (!soundsFolder.exists() && !soundsFolder.mkdirs()) {
-            plugin.getLogger().warning("No se pudo crear la carpeta sounds.");
+            plugin.getLogger().warning("Failed to create the sounds folder.");
         }
     }
 

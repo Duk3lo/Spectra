@@ -64,6 +64,7 @@ public final class VisualizerManager {
         dataConfig.set(path + ".spacing", data.getPreset().getSpacing());
         dataConfig.set(path + ".debris", data.getPreset().isDebris());
         dataConfig.set(path + ".glow", data.getPreset().isGlow());
+        dataConfig.set(path + ".walk-bars", data.getPreset().isWalkBars());
         dataConfig.set(path + ".bars", data.getPreset().getBars());
         dataConfig.set(path + ".location", data.getPos());
         dataConfig.set(path + ".yaw", data.getYaw());
@@ -100,6 +101,7 @@ public final class VisualizerManager {
                 custom.setSpacing(section.getDouble(key + ".spacing", base.getSpacing()));
                 custom.setDebris(section.getBoolean(key + ".debris", base.isDebris()));
                 custom.setGlow(section.getBoolean(key + ".glow", base.isGlow()));
+                custom.setWalkBars(section.getBoolean(key + ".walk-bars", base.isWalkBars()));
                 custom.setBars(section.getInt(key + ".bars", base.getBars()));
 
                 VisualizerData data = new VisualizerData(key, pName, custom, loc, yaw);

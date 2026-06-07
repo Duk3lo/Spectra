@@ -18,7 +18,7 @@ import org.jspecify.annotations.NonNull;
 
 public final class PlayerWalkVisuals {
 
-    public static void draw(@NonNull Player player, VisualPreset preset, boolean isKick, boolean isSnare, boolean isHat) {
+    public static void draw(@NonNull Player player, VisualPreset preset, float[] bars, boolean isKick, boolean isSnare, boolean isHat) {
         Location loc = player.getLocation();
         if (loc.getWorld() == null) return;
 
@@ -72,6 +72,32 @@ public final class PlayerWalkVisuals {
                         if (floorMat.isSolid()) {
                             spawnGroundDebris(explosionLoc, floorMat, dynColor);
                         }
+                    }
+                }
+
+                if (preset.isWalkBars() && bars != null && bars.length > 0) {
+                    int totalBars = preset.getBars() > 0 ? preset.getBars() : bars.length;
+                    double step = (double) bars.length / totalBars;
+                    double rotationYaw = Math.toRadians(loc.getYaw() + 90.0);
+
+                    for (int i = 0; i < totalBars; i++) {
+                        int index = (int) (i * step);
+                        if (index >= bars.length) index = bars.length - 1;
+
+                        float val = Math.clamp(bars[index], 0, 1);
+                        if (val <= 0.05f) continue;
+
+                        Vector offset = VisualMath.getOffset(preset.getShape(), i, totalBars, preset.getRadius(), val, preset.getSpacing(), preset.getMaxHeight());
+                        offset.rotateAroundY(rotationYaw);
+
+                        Location barBase = loc.clone().add(offset);
+                        double height = val * preset.getMaxHeight();
+                        Color barColor = VisualMath.getDynamicColor(i, totalBars);
+
+                        for (double y = 0; y <= height; y += 0.5) {
+                            AudioBarsParticles.spawnColored(barBase.clone().add(0, y, 0), barColor, 1.0f, 1);
+                        }
+                        AudioBarsParticles.spawnSafe(preset.getHighParticle(), barBase.clone().add(0, height, 0));
                     }
                 }
 

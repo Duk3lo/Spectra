@@ -21,42 +21,52 @@ public final class VisualsCmd implements SubCommand {
     @Override public @NonNull String getName() { return "visuals"; }
 
     @Override
-    public void execute(CommandSender sender, String[] args) {
+    public void execute(@NonNull CommandSender sender, String[] args) {
+        if (!sender.hasPermission("spectra.use")) {
+            sender.sendMessage("§cYou do not have permission to use this command.");
+            return;
+        }
+
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("§cSolo jugadores pueden usar este comando.");
+            sender.sendMessage("§cOnly players can use this command.");
             return;
         }
 
         if (args.length < 2) {
-            sender.sendMessage("§eUso: /spectra visuals <preset|create|stop|list|remove> ...");
+            sender.sendMessage("§eUsage: /spectra visuals <preset|create|stop|list|remove> ...");
             return;
         }
 
         String sub = args[1].toLowerCase();
 
         if (sub.equals("list")) {
-            sender.sendMessage("§eVisualizadores activos:");
+            sender.sendMessage("§eActive Visualizers:");
             VisualizerManager.getAllVisualizers().forEach(v ->
-                    sender.sendMessage("§7- §f" + v.getName() + " §e[" + v.getPresetName() + "] " + (v.isPersistent() ? "§a(Guardado)" : "§b(Temporal)")));
+                    sender.sendMessage("§7- §f" + v.getName() + " §e[" + v.getPresetName() + "] " + (v.isPersistent() ? "§a(Saved)" : "§b(Temporary)")));
             return;
         }
 
         if (sub.equals("stop") || sub.equals("remove")) {
             if (args.length > 2) {
                 VisualizerManager.stop(args[2]);
-                sender.sendMessage("§cVisualizador '" + args[2] + "' detenido.");
+                sender.sendMessage("§cVisualizer '" + args[2] + "' stopped.");
             } else {
                 VisualizerManager.stopAll();
-                sender.sendMessage("§cTodos los visualizadores temporales detenidos.");
+                sender.sendMessage("§cAll temporary visualizers stopped.");
             }
             return;
         }
 
         boolean isPermanent = sub.equals("create");
+        if (isPermanent && !sender.hasPermission("spectra.admin")) {
+            sender.sendMessage("§cOnly admins can create permanent visualizers.");
+            return;
+        }
+
         int offset = isPermanent ? 1 : 0;
 
         if (isPermanent && args.length < 3) {
-            sender.sendMessage("§eUso: /spectra visuals create <preset> [targets/nombre] ...");
+            sender.sendMessage("§eUsage: /spectra visuals create <preset> [targets/name] ...");
             return;
         }
 
@@ -64,7 +74,7 @@ public final class VisualsCmd implements SubCommand {
         VisualPreset base = plugin.getConfigManager().getVisualsConfig().getPresetsMap().get(presetKey.toLowerCase());
 
         if (base == null) {
-            sender.sendMessage("§cEl preset '" + presetKey + "' no existe.");
+            sender.sendMessage("§cPreset '" + presetKey + "' does not exist.");
             return;
         }
 
@@ -130,9 +140,9 @@ public final class VisualsCmd implements SubCommand {
         String finalName = VisualizerManager.start(customName, presetKey, custom, loc, isPermanent, targets);
 
         if (isPlayerCentric) {
-            sender.sendMessage("§aVisualizador iniciado: §f" + finalName + " §a(Objetivos: " + targets.size() + ")");
+            sender.sendMessage("§aVisualizer started: §f" + finalName + " §a(Targets: " + targets.size() + ")");
         } else {
-            sender.sendMessage("§aVisualizador iniciado: §f" + finalName);
+            sender.sendMessage("§aVisualizer started: §f" + finalName);
         }
     }
 
@@ -187,7 +197,7 @@ public final class VisualsCmd implements SubCommand {
                 list.addAll(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList());
                 return list;
             } else {
-                return List.of("<nombre>");
+                return List.of("<name>");
             }
         }
 
@@ -198,11 +208,11 @@ public final class VisualsCmd implements SubCommand {
             }
         }
 
-        if (args.length == indexToCheck) return List.of("<nombre>");
-        if (args.length == indexToCheck + 1) return List.of("<forma>");
-        if (args.length == indexToCheck + 2) return List.of("<altura>");
-        if (args.length == indexToCheck + 3) return List.of("<espaciado>");
-        if (args.length == indexToCheck + 4) return List.of("<radio>");
+        if (args.length == indexToCheck) return List.of("<name>");
+        if (args.length == indexToCheck + 1) return List.of("<shape>");
+        if (args.length == indexToCheck + 2) return List.of("<height>");
+        if (args.length == indexToCheck + 3) return List.of("<spacing>");
+        if (args.length == indexToCheck + 4) return List.of("<radius>");
         if (args.length == indexToCheck + 5) return List.of("<x>");
         if (args.length == indexToCheck + 6) return List.of("<y>");
         if (args.length == indexToCheck + 7) return List.of("<z>");

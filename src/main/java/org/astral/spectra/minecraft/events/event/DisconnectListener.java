@@ -2,7 +2,7 @@ package org.astral.spectra.minecraft.events.event;
 
 import org.astral.spectra.audio.api.AudioAPI;
 import org.astral.spectra.minecraft.SpectraPlugin;
-import org.astral.spectra.minecraft.commands.SpectraAdminCommand;
+import org.astral.spectra.minecraft.commands.SpectraCommand;
 import org.astral.spectra.minecraft.events.visuals.VisualizerManager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -17,10 +17,11 @@ public final class DisconnectListener implements Listener {
     @EventHandler
     public void onPlayerQuit(@NonNull PlayerQuitEvent event) {
         UUID disconnectedPlayerUuid = event.getPlayer().getUniqueId();
-        SpectraAdminCommand.playersListen.remove(disconnectedPlayerUuid);
-        if (SpectraAdminCommand.playersListen.isEmpty()) {
+        SpectraCommand.playersListen.remove(disconnectedPlayerUuid);
+
+        if (SpectraCommand.playersListen.isEmpty()) {
             if (AudioAPI.isPlaying()) {
-                plugin.getLogger().info("Último oyente desconectado, deteniendo música y limpiando visualizadores...");
+                plugin.getLogger().info("Last listener disconnected, stopping music and clearing visualizers...");
                 plugin.getAudioEngine().stopSong();
             }
             VisualizerManager.stopAll();

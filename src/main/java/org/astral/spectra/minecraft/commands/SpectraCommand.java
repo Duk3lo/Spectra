@@ -8,17 +8,18 @@ import org.jspecify.annotations.NonNull;
 
 import java.util.*;
 
-public final class SpectraAdminCommand implements CommandExecutor, TabCompleter {
+public final class SpectraCommand implements CommandExecutor, TabCompleter {
     public static final Set<UUID> playersListen = new HashSet<>();
     private final Map<String, SubCommand> subCommands = new HashMap<>();
 
-    public SpectraAdminCommand(SpectraPlugin plugin) {
+    public SpectraCommand(SpectraPlugin plugin) {
         register(new PlayCmd(plugin));
         register(new StopCmd(plugin));
         register(new AdjustCmd(plugin));
         register(new ImportCmd(plugin));
         register(new ReloadCmd(plugin));
         register(new VisualsCmd(plugin));
+        register(new RemoveSoundCmd(plugin));
     }
 
     private void register(SubCommand cmd) { subCommands.put(cmd.getName().toLowerCase(), cmd); }
@@ -26,7 +27,7 @@ public final class SpectraAdminCommand implements CommandExecutor, TabCompleter 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NonNull [] args) {
         if (args.length == 0 || !subCommands.containsKey(args[0].toLowerCase())) {
-            sender.sendMessage("§eComandos: §f" + subCommands.keySet());
+            sender.sendMessage("§eAvailable commands: §f" + subCommands.keySet());
             return true;
         }
         subCommands.get(args[0].toLowerCase()).execute(sender, args);

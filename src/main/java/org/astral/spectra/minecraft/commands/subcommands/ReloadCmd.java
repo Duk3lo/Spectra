@@ -18,7 +18,10 @@ public final class ReloadCmd implements SubCommand {
 
     @Override
     public void execute(@NonNull CommandSender sender, String[] args) {
-        if (!sender.hasPermission("spectra.admin")) return;
+        if (!sender.hasPermission("spectra.admin")) {
+            sender.sendMessage("§cYou do not have permission to use this command.");
+            return;
+        }
 
         long now = System.currentTimeMillis();
         if (now - lastReload < 5000) return;
@@ -36,13 +39,13 @@ public final class ReloadCmd implements SubCommand {
 
             if (packUpdated) {
                 PackUtils.sendPackToAll();
-                sender.sendMessage("§a✅ Spectra recargado. §eSe detectaron nuevos audios (Paquete reenviado).");
+                sender.sendMessage("§a✅ Spectra reloaded. §eNew audio detected (Pack re-sent).");
             } else {
-                sender.sendMessage("§a✅ Spectra recargado.");
+                sender.sendMessage("§a✅ Spectra reloaded.");
             }
 
         } catch (Exception e) {
-            sender.sendMessage("§cError al recargar Spectra.");
+            sender.sendMessage("§cError reloading Spectra.");
         }
     }
 

@@ -44,17 +44,17 @@ public final class PackServer {
 
             server.setExecutor(null);
             server.start();
-            plugin.getLogger().info("Servidor web iniciado en el puerto " + port);
+            plugin.getLogger().info("Web server started on port " + port);
 
         } catch (IOException e) {
-            plugin.getLogger().severe("No se pudo iniciar el servidor web: " + e.getMessage());
+            plugin.getLogger().severe("Could not start the web server: " + e.getMessage());
         }
     }
 
     public void stop() {
         if (server != null) {
             server.stop(0);
-            plugin.getLogger().info("Servidor web detenido.");
+            plugin.getLogger().info("Web server stopped.");
         }
     }
 }
