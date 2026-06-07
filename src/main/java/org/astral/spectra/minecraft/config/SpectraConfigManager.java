@@ -22,6 +22,8 @@ public final class SpectraConfigManager {
     }
 
     public void loadAllConfigs() {
+        createDirectories();
+
         plugin.saveDefaultConfig();
         plugin.reloadConfig();
         FileConfiguration config = plugin.getConfig();
@@ -54,6 +56,22 @@ public final class SpectraConfigManager {
                     this.visualsConfig.loadPresetFromYaml(key, presetSec);
                 }
             }
+        }
+    }
+
+    private void createDirectories() {
+        if (!plugin.getDataFolder().exists() && !plugin.getDataFolder().mkdirs()) {
+            plugin.getLogger().warning("No se pudo crear la carpeta principal del plugin.");
+        }
+
+        File importFolder = new File(plugin.getDataFolder(), "import");
+        if (!importFolder.exists() && !importFolder.mkdirs()) {
+            plugin.getLogger().warning("No se pudo crear la carpeta import.");
+        }
+
+        File soundsFolder = new File(plugin.getDataFolder(), "sounds");
+        if (!soundsFolder.exists() && !soundsFolder.mkdirs()) {
+            plugin.getLogger().warning("No se pudo crear la carpeta sounds.");
         }
     }
 
