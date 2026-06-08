@@ -30,12 +30,9 @@ public final class RemoveSoundCmd implements SubCommand {
         }
 
         String targetName = args[1].toLowerCase();
-        if (!targetName.endsWith(".ogg")) {
-            targetName += ".ogg";
-        }
+        if (!targetName.endsWith(".ogg")) targetName += ".ogg";
 
         Path sourceFile = plugin.getDataFolder().toPath().resolve("sounds").resolve(targetName);
-
         if (!Files.exists(sourceFile)) {
             sender.sendMessage("§cSound '§7" + targetName + "§c' is not installed.");
             return;
@@ -47,12 +44,11 @@ public final class RemoveSoundCmd implements SubCommand {
             Files.createDirectories(returnFile.getParent());
             Files.move(sourceFile, returnFile, StandardCopyOption.REPLACE_EXISTING);
 
-            boolean packUpdated = plugin.getPackManager().buildPack();
-            if (packUpdated) {
+            if (plugin.getPackManager().buildPack()) {
                 PackUtils.sendPackToAll();
             }
 
-            sender.sendMessage("§a✅ Sound '" + targetName + "' removed from game and moved back to 'import/'.");
+            sender.sendMessage("§a✅ Sound '" + targetName + "' removed and moved back to 'import/'.");
         } catch (Exception e) {
             sender.sendMessage("§cAn error occurred while removing the file.");
         }

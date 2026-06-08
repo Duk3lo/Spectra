@@ -28,8 +28,7 @@ public final class ImportCmd implements SubCommand {
         }
 
         String targetName = args[args.length - 1];
-        String[] fileNameParts = Arrays.copyOfRange(args, 1, args.length - 1);
-        String fileName = String.join(" ", fileNameParts);
+        String fileName = String.join(" ", Arrays.copyOfRange(args, 1, args.length - 1));
 
         if (!fileName.toLowerCase().endsWith(".ogg")) {
             sender.sendMessage("§cFile must be in .ogg format");
@@ -48,8 +47,7 @@ public final class ImportCmd implements SubCommand {
             Files.createDirectories(dst.getParent());
             Files.move(src, dst, StandardCopyOption.REPLACE_EXISTING);
 
-            boolean packUpdated = plugin.getPackManager().buildPack();
-            if (packUpdated) {
+            if (plugin.getPackManager().buildPack()) {
                 PackUtils.sendPackToAll();
             }
 

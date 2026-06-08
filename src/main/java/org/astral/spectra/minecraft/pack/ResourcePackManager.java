@@ -30,9 +30,8 @@ public final class ResourcePackManager {
     public boolean buildPack() {
         try {
             if (!Files.exists(soundsDir)) Files.createDirectories(soundsDir);
-
             File[] oggFiles = soundsDir.toFile().listFiles((_, name) -> name.toLowerCase().endsWith(".ogg"));
-            if (oggFiles == null || oggFiles.length == 0) return false;
+            if (oggFiles == null) oggFiles = new File[0];
 
             Arrays.sort(oggFiles, Comparator.comparing(File::getName));
             StringBuilder stateBuilder = new StringBuilder();
@@ -46,16 +45,20 @@ public final class ResourcePackManager {
             }
             this.sourceStateHash = newStateHash;
 
+            if (oggFiles.length == 0) {
+                Files.deleteIfExists(packFile);
+                this.currentHash = "";
+                return true;
+            }
+
             try (FileOutputStream fos = new FileOutputStream(packFile.toFile());
                  ZipOutputStream zos = new ZipOutputStream(fos)) {
-
                 String mcmeta = "{\"pack\":{\"pack_format\":15,\"description\":\"Spectra Audio\"}}";
                 addToZip(zos, "pack.mcmeta", mcmeta.getBytes());
 
                 JsonObject soundsJson = new JsonObject();
                 for (File file : oggFiles) {
                     String name = file.getName().replace(".ogg", "").toLowerCase().replaceAll("[^a-z0-9_]", "");
-
                     addToZip(zos, "assets/astral/sounds/" + name + ".ogg", Files.readAllBytes(file.toPath()));
 
                     JsonObject event = new JsonObject();
@@ -70,7 +73,7 @@ public final class ResourcePackManager {
             return true;
 
         } catch (Exception e) {
-            plugin.getLogger().severe(e.getMessage());
+            plugin.getLogger().severe("Error building pack: " + e.getMessage());
             return false;
         }
     }
@@ -94,6 +97,7 @@ public final class ResourcePackManager {
         return sb.toString();
     }
 
+    public boolean hasPack() { return !currentHash.isEmpty() && Files.exists(packFile); }
     public String getCurrentHash() { return currentHash; }
     public Path getPackFile() { return packFile; }
 }

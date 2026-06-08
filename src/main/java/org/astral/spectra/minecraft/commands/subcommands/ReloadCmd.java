@@ -34,12 +34,11 @@ public final class ReloadCmd implements SubCommand {
             }
 
             boolean packUpdated = plugin.getPackManager().buildPack();
-
             VisualizerManager.init(plugin);
 
             if (packUpdated) {
                 PackUtils.sendPackToAll();
-                sender.sendMessage("§a✅ Spectra reloaded. §eNew audio detected (Pack re-sent).");
+                sender.sendMessage("§a✅ Spectra reloaded (Pack synchronized).");
             } else {
                 sender.sendMessage("§a✅ Spectra reloaded.");
             }
