@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/badge/Java-25-orange.svg" alt="Java 25">
   <img src="https://img.shields.io/badge/Engine-OpenAL-blue.svg" alt="OpenAL">
   <img src="https://img.shields.io/badge/Modules-Core%20%7C%20Minecraft%20%7C%20Hytale-green.svg" alt="Modules">
-  <img src="https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg" alt="MPL 2.0 License">
+  <img src="https://img.shields.io/badge/License-MPL%202.0-orange.svg" alt="MPL 2.0 License">
 </p>
 
 <p align="center">
