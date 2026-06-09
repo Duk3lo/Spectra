@@ -39,7 +39,7 @@ tasks.shadowJar {
 
 tasks.register<JavaExec>("runMain") {
     group = "application"
-    description = "Ejecuta la UI y el Main del Core"
+    description = "Main Core"
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("org.astral.spectra.Main")
 }
