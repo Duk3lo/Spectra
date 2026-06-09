@@ -16,6 +16,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public final class WebVisualizer {
@@ -74,7 +75,7 @@ public final class WebVisualizer {
             server.createContext("/volume", new VolumeHandler());
             server.createContext("/", new StaticResourceHandler(webFolder));
 
-            server.setExecutor(null);
+            server.setExecutor(Executors.newCachedThreadPool());
             server.start();
 
             currentUrl = "http://localhost:" + port;
@@ -274,15 +275,34 @@ public final class WebVisualizer {
             exchange.getResponseHeaders().add("Cache-Control", "no-cache");
             exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
             exchange.sendResponseHeaders(200, 0);
-
-            OutputStream os = exchange.getResponseBody();
-            clients.add(os);
-            clientConnectedLatch.countDown();
-            String msg = "{\"type\":\"volume_change\", \"value\":" +
-                    String.format(Locale.US, "%.2f", lastBroadcastVolume >= 0 ? lastBroadcastVolume : 0.1f) + "}";
-            byte[] bytes = ("data: " + msg + "\n\n").getBytes(StandardCharsets.UTF_8);
-            os.write(bytes);
-            os.flush();
+            try (exchange; OutputStream os = exchange.getResponseBody()) {
+                clients.add(os);
+                clientConnectedLatch.countDown();
+                try {
+                    String msg = "{\"type\":\"volume_change\", \"value\":" +
+                            String.format(Locale.US, "%.2f", lastBroadcastVolume >= 0 ? lastBroadcastVolume : 0.1f) + "}";
+                    byte[] bytes = ("data: " + msg + "\n\n").getBytes(StandardCharsets.UTF_8);
+                    os.write(bytes);
+                    os.flush();
+                    boolean isConnected = true;
+                    CountDownLatch pingWait = new CountDownLatch(1);
+                    while (isConnected && !Thread.currentThread().isInterrupted()) {
+                        try {
+                            if (!pingWait.await(2, TimeUnit.SECONDS)) {
+                                os.write(":\n\n".getBytes(StandardCharsets.UTF_8));
+                                os.flush();
+                            }
+                        } catch (IOException e) {
+                            isConnected = false;
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            isConnected = false;
+                        }
+                    }
+                } finally {
+                    clients.remove(os);
+                }
+            }
         }
     }
 }
