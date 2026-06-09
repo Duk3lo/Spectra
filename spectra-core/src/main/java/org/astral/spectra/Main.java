@@ -18,15 +18,21 @@ public class Main {
 
     static void main() {
         AudioConfig config = new AudioConfig();
+
         AudioEngine engine = new AudioEngine(config, logger);
 
         logger.info("\u001B[35m[Main] Starting Audio Engine\u001B[0m");
+        webVisualizer.setAutoOpen(config.getGeneral().isAutoOpenBrowser());
 
         engine.setWebVisualizer(webVisualizer);
         webVisualizer.setVolumeCallback(engine::setVolume);
 
         webVisualizer.start();
-        webVisualizer.waitForConnection();
+
+        if (config.getGeneral().isAutoOpenBrowser()) {
+            webVisualizer.waitForConnection();
+        }
+
         AudioControlFrame.setDefaultWebUrl(webVisualizer.getUrl());
 
         engine.start();

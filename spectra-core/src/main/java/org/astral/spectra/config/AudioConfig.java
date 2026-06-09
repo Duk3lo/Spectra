@@ -1,6 +1,5 @@
 package org.astral.spectra.config;
 
-
 public final class AudioConfig {
     private General general = new General();
     private Visualizer visualizer = new Visualizer();
@@ -21,15 +20,16 @@ public final class AudioConfig {
         private float currentVolume = 0.0f;
         private int updateRateMs = 16;
         private String delayedTask = "0s";
+        private boolean autoOpenBrowser = true;
 
         public float getCurrentVolume() { return currentVolume; }
         public void setCurrentVolume(float currentVolume) { this.currentVolume = currentVolume; }
-
         public int getUpdateRateMs() { return updateRateMs; }
         public void setUpdateRateMs(int updateRateMs) { this.updateRateMs = updateRateMs; }
-
         public String getDelayedTask() { return delayedTask; }
         public void setDelayedTask(String delayedTask) { this.delayedTask = delayedTask; }
+        public boolean isAutoOpenBrowser() { return autoOpenBrowser; }
+        public void setAutoOpenBrowser(boolean autoOpenBrowser) { this.autoOpenBrowser = autoOpenBrowser; }
 
         public long getDelayedTaskInMs() {
             if (delayedTask == null || delayedTask.isEmpty()) return 0;
@@ -43,9 +43,7 @@ public final class AudioConfig {
                     case "d" -> value * 24 * 60 * 60 * 1000;
                     default -> Long.parseLong(delayedTask);
                 };
-            } catch (NumberFormatException e) {
-                return 0;
-            }
+            } catch (NumberFormatException e) { return 0; }
         }
     }
 

@@ -29,37 +29,37 @@ public final class WebVisualizer {
     private final String engineName;
     private final int startPort;
     private final EngineLogger logger;
+    private boolean autoOpen = true;
     private volatile float lastBroadcastVolume = -1f;
 
     private String currentUrl = "http://localhost:8080";
-
     private VolumeCallback volumeCallback;
-
     private final CountDownLatch clientConnectedLatch = new CountDownLatch(1);
 
     public interface VolumeCallback {
         void onVolumeChange(float level);
     }
 
-    private record ClientConnection(OutputStream os) {
-
+    private record ClientConnection(OutputStream os, CountDownLatch keepAliveLatch) {
         public synchronized void send(byte[] data) throws IOException {
-                os.write(data);
-                os.flush();
-            }
-
-            public void close() {
-                try {
-                    os.close();
-                } catch (Exception ignored) {
-                }
-            }
+            os.write(data);
+            os.flush();
         }
+
+        public void close() {
+            try { os.close(); } catch (Exception ignored) {}
+            if (keepAliveLatch != null) keepAliveLatch.countDown();
+        }
+    }
 
     public WebVisualizer(String engineName, int startPort, EngineLogger logger) {
         this.engineName = engineName;
         this.startPort = startPort;
         this.logger = logger;
+    }
+
+    public void setAutoOpen(boolean autoOpen) {
+        this.autoOpen = autoOpen;
     }
 
     public void setVolumeCallback(VolumeCallback callback) {
@@ -96,7 +96,9 @@ public final class WebVisualizer {
             currentUrl = "http://localhost:" + port;
             logger.info("\u001B[32m[" + engineName + "] Web server started at " + currentUrl + "\u001B[0m");
 
-            abrirNavegador(currentUrl);
+            if (autoOpen) {
+                abrirNavegador(currentUrl);
+            }
 
         } catch (Exception e) {
             logger.error("Error loading web server: " + e.getMessage(), e);
@@ -126,6 +128,15 @@ public final class WebVisualizer {
 
     public void stop() {
         if (server != null) {
+            byte[] shutdownMsg = "data: {\"type\":\"shutdown\"}\n\n".getBytes(StandardCharsets.UTF_8);
+            for (ClientConnection client : clients) {
+                try {
+                    client.send(shutdownMsg);
+                } catch (IOException ignored) {}
+            }
+
+            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+
             clients.forEach(ClientConnection::close);
             clients.clear();
             server.stop(0);
@@ -135,14 +146,11 @@ public final class WebVisualizer {
 
     public void sendVolumeUpdate(float volume) {
         float v = Math.clamp(volume, 0.0f, 1.0f);
-
         if (Math.abs(v - lastBroadcastVolume) < 0.001f) return;
         lastBroadcastVolume = v;
         if (server == null || clients.isEmpty()) return;
 
-        String msg = "{\"type\":\"volume_change\", \"value\":" +
-                String.format(Locale.US, "%.2f", v) + "}";
-
+        String msg = "{\"type\":\"volume_change\", \"value\":" + String.format(Locale.US, "%.2f", v) + "}";
         byte[] bytes = ("data: " + msg + "\n\n").getBytes(StandardCharsets.UTF_8);
 
         clients.removeIf(client -> {
@@ -155,15 +163,7 @@ public final class WebVisualizer {
         });
     }
 
-    public void update(float[] bars,
-                       float[] beatIntensity,
-                       Map<String, Float> features,
-                       float energy,
-                       int combo,
-                       float speed,
-                       boolean isPaused,
-                       float currentSecs,
-                       float totalSecs) {
+    public void update(float[] bars, float[] beatIntensity, Map<String, Float> features, float energy, int combo, float speed, boolean isPaused, float currentSecs, float totalSecs) {
         if (clients.isEmpty() || server == null) return;
 
         StringBuilder sb = new StringBuilder();
@@ -182,8 +182,7 @@ public final class WebVisualizer {
         sb.append("],\"features\":{");
         int index = 0;
         for (Map.Entry<String, Float> entry : features.entrySet()) {
-            sb.append("\"").append(escapeJson(entry.getKey())).append("\":")
-                    .append(String.format(Locale.US, "%.3f", entry.getValue()));
+            sb.append("\"").append(escapeJson(entry.getKey())).append("\":").append(String.format(Locale.US, "%.3f", entry.getValue()));
             if (index < features.size() - 1) sb.append(",");
             index++;
         }
@@ -197,7 +196,6 @@ public final class WebVisualizer {
                 .append("}");
 
         byte[] bytes = ("data: " + sb + "\n\n").getBytes(StandardCharsets.UTF_8);
-
         clients.removeIf(client -> {
             try {
                 client.send(bytes);
@@ -214,19 +212,12 @@ public final class WebVisualizer {
 
     class StaticResourceHandler implements HttpHandler {
         private final String baseFolder;
-
-        public StaticResourceHandler(String baseFolder) {
-            this.baseFolder = baseFolder;
-        }
+        public StaticResourceHandler(String baseFolder) { this.baseFolder = baseFolder; }
 
         @Override
         public void handle(@NotNull HttpExchange exchange) throws IOException {
             String path = exchange.getRequestURI().getPath();
-
-            if (path.equals("/")) {
-                path = "/index.html";
-            }
-
+            if (path.equals("/")) path = "/index.html";
             String resourcePath = baseFolder + path;
 
             try (InputStream is = getClass().getResourceAsStream(resourcePath)) {
@@ -234,22 +225,15 @@ public final class WebVisualizer {
                     exchange.sendResponseHeaders(404, -1);
                     return;
                 }
-
                 byte[] responseBytes = is.readAllBytes();
-
                 if (path.endsWith(".html")) {
                     String content = new String(responseBytes, StandardCharsets.UTF_8);
                     content = content.replace("{{ENGINE_NAME}}", engineName.toUpperCase());
                     responseBytes = content.getBytes(StandardCharsets.UTF_8);
                 }
-
-                String mimeType = getMimeType(path);
-                exchange.getResponseHeaders().add("Content-Type", mimeType);
-
+                exchange.getResponseHeaders().add("Content-Type", getMimeType(path));
                 exchange.sendResponseHeaders(200, responseBytes.length);
-                try (OutputStream os = exchange.getResponseBody()) {
-                    os.write(responseBytes);
-                }
+                try (OutputStream os = exchange.getResponseBody()) { os.write(responseBytes); }
             }
         }
 
@@ -272,9 +256,7 @@ public final class WebVisualizer {
             String q = exchange.getRequestURI().getQuery();
             if (q != null && q.startsWith("level=")) {
                 try {
-                    if (volumeCallback != null) {
-                        volumeCallback.onVolumeChange(Float.parseFloat(q.split("=")[1]));
-                    }
+                    if (volumeCallback != null) volumeCallback.onVolumeChange(Float.parseFloat(q.split("=")[1]));
                 } catch (Exception ignored) {}
             }
             exchange.sendResponseHeaders(200, -1);
@@ -288,37 +270,26 @@ public final class WebVisualizer {
             exchange.getResponseHeaders().add("Content-Type", "text/event-stream");
             exchange.getResponseHeaders().add("Cache-Control", "no-cache");
             exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+            exchange.getResponseHeaders().add("Connection", "keep-alive");
             exchange.sendResponseHeaders(200, 0);
-
-            ClientConnection client = new ClientConnection(exchange.getResponseBody());
-            clients.add(client);
-            clientConnectedLatch.countDown();
-
-            try (exchange) {
-                String msg = "{\"type\":\"volume_change\", \"value\":" +
-                        String.format(Locale.US, "%.2f", lastBroadcastVolume >= 0 ? lastBroadcastVolume : 0.1f) + "}";
-                byte[] bytes = ("data: " + msg + "\n\n").getBytes(StandardCharsets.UTF_8);
-
-                client.send(bytes);
-
-                boolean isConnected = true;
-                CountDownLatch pingWait = new CountDownLatch(1);
-                byte[] pingBytes = ":\n\n".getBytes(StandardCharsets.UTF_8);
-
-                while (isConnected && !Thread.currentThread().isInterrupted()) {
-                    try {
-                        if (!pingWait.await(2, TimeUnit.SECONDS)) {
-                            client.send(pingBytes);
-                        }
-                    } catch (IOException e) {
-                        isConnected = false;
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        isConnected = false;
+            try (exchange; OutputStream os = exchange.getResponseBody()) {
+                CountDownLatch keepAliveLatch = new CountDownLatch(1);
+                ClientConnection client = new ClientConnection(os, keepAliveLatch);
+                clients.add(client);
+                clientConnectedLatch.countDown();
+                try {
+                    String msg = "{\"type\":\"volume_change\", \"value\":" + String.format(Locale.US, "%.2f", lastBroadcastVolume >= 0 ? lastBroadcastVolume : 0.1f) + "}";
+                    client.send(("data: " + msg + "\n\n").getBytes(StandardCharsets.UTF_8));
+                    byte[] pingBytes = ":\n\n".getBytes(StandardCharsets.UTF_8);
+                    while (!Thread.currentThread().isInterrupted() && !keepAliveLatch.await(2, TimeUnit.SECONDS)) {
+                        client.send(pingBytes);
                     }
+                } catch (IOException ignored) {
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    clients.remove(client);
                 }
-            } finally {
-                clients.remove(client);
             }
         }
     }

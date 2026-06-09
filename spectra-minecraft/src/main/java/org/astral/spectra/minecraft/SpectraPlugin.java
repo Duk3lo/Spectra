@@ -32,9 +32,8 @@ public final class SpectraPlugin extends JavaPlugin {
         this.packManager.buildPack();
         this.packServer = new PackServer(this, packManager);
         this.packServer.start(configManager.getServerPort());
-
         WebVisualizer webVisualizer = new WebVisualizer("OpenAL - Spectra (Minecraft)", configManager.getWebVisualizerPort(), pluginLogger);
-
+        webVisualizer.setAutoOpen(configManager.getAudioConfig().getGeneral().isAutoOpenBrowser());
         this.engine = new AudioEngine(configManager.getAudioConfig(), pluginLogger);
         this.engine.setWebVisualizer(webVisualizer);
         webVisualizer.setVolumeCallback(engine::setVolume);

@@ -4,6 +4,7 @@ web-server:
 
 web-visualizer:
   port: 8081
+  auto-open-browser: false
 
 audio:
   general:

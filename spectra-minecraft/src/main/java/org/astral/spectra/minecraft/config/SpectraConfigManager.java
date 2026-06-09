@@ -12,18 +12,14 @@ public final class SpectraConfigManager {
     private final SpectraPlugin plugin;
     private AudioConfig audioConfig;
     private VisualsConfig visualsConfig;
-
     private String serverIp;
     private int serverPort;
     private int webVisualizerPort;
 
-    public SpectraConfigManager(SpectraPlugin plugin) {
-        this.plugin = plugin;
-    }
+    public SpectraConfigManager(SpectraPlugin plugin) { this.plugin = plugin; }
 
     public void loadAllConfigs() {
         createDirectories();
-
         plugin.saveDefaultConfig();
         plugin.reloadConfig();
         FileConfiguration config = plugin.getConfig();
@@ -33,11 +29,12 @@ public final class SpectraConfigManager {
         this.webVisualizerPort = config.getInt("web-visualizer.port", 8081);
 
         this.audioConfig = new AudioConfig();
-
         AudioConfig.General gen = new AudioConfig.General();
         gen.setCurrentVolume((float) config.getDouble("audio.general.current-volume", 1.0));
         gen.setUpdateRateMs(config.getInt("audio.general.update-rate-ms", 16));
         gen.setDelayedTask(config.getString("audio.general.delayed-task", "0s"));
+        gen.setAutoOpenBrowser(config.getBoolean("web-visualizer.auto-open-browser", true));
+
         audioConfig.setGeneral(gen);
 
         AudioConfig.Visualizer vis = new AudioConfig.Visualizer();
@@ -62,52 +59,36 @@ public final class SpectraConfigManager {
         File presetsFile = new File(plugin.getDataFolder(), "presets.yml");
         if (!presetsFile.exists()) plugin.saveResource("presets.yml", false);
         FileConfiguration presetsConfig = YamlConfiguration.loadConfiguration(presetsFile);
-
         this.visualsConfig = new VisualsConfig();
         ConfigurationSection section = presetsConfig.getConfigurationSection("presets");
         if (section != null) {
             for (String key : section.getKeys(false)) {
                 ConfigurationSection presetSec = section.getConfigurationSection(key);
-                if (presetSec != null) {
-                    this.visualsConfig.loadPresetFromYaml(key, presetSec);
-                }
+                if (presetSec != null) this.visualsConfig.loadPresetFromYaml(key, presetSec);
             }
         }
     }
 
     private void createDirectories() {
-        if (!plugin.getDataFolder().exists() && !plugin.getDataFolder().mkdirs()) {
-            plugin.getLogger().warning("Failed to create the main plugin folder.");
+        File dataFolder = plugin.getDataFolder();
+        if (!dataFolder.exists()) {
+            if (!dataFolder.mkdirs()) plugin.getLogger().warning("Failed to create the main plugin folder.");
         }
 
-        File importFolder = new File(plugin.getDataFolder(), "import");
-        if (!importFolder.exists() && !importFolder.mkdirs()) {
-            plugin.getLogger().warning("Failed to create the import folder.");
+        File importFolder = new File(dataFolder, "import");
+        if (!importFolder.exists()) {
+            if (!importFolder.mkdirs()) plugin.getLogger().warning("Failed to create the import folder.");
         }
 
-        File soundsFolder = new File(plugin.getDataFolder(), "sounds");
-        if (!soundsFolder.exists() && !soundsFolder.mkdirs()) {
-            plugin.getLogger().warning("Failed to create the sounds folder.");
+        File soundsFolder = new File(dataFolder, "sounds");
+        if (!soundsFolder.exists()) {
+            if (!soundsFolder.mkdirs()) plugin.getLogger().warning("Failed to create the sounds folder.");
         }
     }
 
-    public String getServerIp() {
-        return serverIp;
-    }
-
-    public int getServerPort() {
-        return serverPort;
-    }
-
-    public int getWebVisualizerPort() {
-        return webVisualizerPort;
-    }
-
-    public AudioConfig getAudioConfig() {
-        return audioConfig;
-    }
-
-    public VisualsConfig getVisualsConfig() {
-        return visualsConfig;
-    }
+    public String getServerIp() { return serverIp; }
+    public int getServerPort() { return serverPort; }
+    public int getWebVisualizerPort() { return webVisualizerPort; }
+    public AudioConfig getAudioConfig() { return audioConfig; }
+    public VisualsConfig getVisualsConfig() { return visualsConfig; }
 }
