@@ -24,7 +24,7 @@ public final class WebVisualizer {
     private static final String webFolder = "/web";
 
     private HttpServer server;
-    private final List<OutputStream> clients = new CopyOnWriteArrayList<>();
+    private final List<ClientConnection> clients = new CopyOnWriteArrayList<>();
 
     private final String engineName;
     private final int startPort;
@@ -40,6 +40,21 @@ public final class WebVisualizer {
     public interface VolumeCallback {
         void onVolumeChange(float level);
     }
+
+    private record ClientConnection(OutputStream os) {
+
+        public synchronized void send(byte[] data) throws IOException {
+                os.write(data);
+                os.flush();
+            }
+
+            public void close() {
+                try {
+                    os.close();
+                } catch (Exception ignored) {
+                }
+            }
+        }
 
     public WebVisualizer(String engineName, int startPort, EngineLogger logger) {
         this.engineName = engineName;
@@ -99,10 +114,10 @@ public final class WebVisualizer {
     }
 
     private void abrirNavegador(String url) {
-        String os = System.getProperty("os.name").toLowerCase();
+        String osName = System.getProperty("os.name").toLowerCase();
         try {
-            if (os.contains("win")) Runtime.getRuntime().exec(new String[]{"cmd", "/c", "start", url});
-            else if (os.contains("mac")) Runtime.getRuntime().exec(new String[]{"open", url});
+            if (osName.contains("win")) Runtime.getRuntime().exec(new String[]{"cmd", "/c", "start", url});
+            else if (osName.contains("mac")) Runtime.getRuntime().exec(new String[]{"open", url});
             else Runtime.getRuntime().exec(new String[]{"xdg-open", url});
         } catch (Exception e) {
             logger.warn("\u001B[33mOpen your browser at: " + url + "\u001B[0m");
@@ -111,7 +126,7 @@ public final class WebVisualizer {
 
     public void stop() {
         if (server != null) {
-            clients.forEach(os -> { try { os.close(); } catch (Exception ignored) {} });
+            clients.forEach(ClientConnection::close);
             clients.clear();
             server.stop(0);
             server = null;
@@ -130,10 +145,9 @@ public final class WebVisualizer {
 
         byte[] bytes = ("data: " + msg + "\n\n").getBytes(StandardCharsets.UTF_8);
 
-        clients.removeIf(os -> {
+        clients.removeIf(client -> {
             try {
-                os.write(bytes);
-                os.flush();
+                client.send(bytes);
                 return false;
             } catch (IOException e) {
                 return true;
@@ -183,10 +197,10 @@ public final class WebVisualizer {
                 .append("}");
 
         byte[] bytes = ("data: " + sb + "\n\n").getBytes(StandardCharsets.UTF_8);
-        clients.removeIf(os -> {
+
+        clients.removeIf(client -> {
             try {
-                os.write(bytes);
-                os.flush();
+                client.send(bytes);
                 return false;
             } catch (IOException e) {
                 return true;
@@ -275,33 +289,36 @@ public final class WebVisualizer {
             exchange.getResponseHeaders().add("Cache-Control", "no-cache");
             exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
             exchange.sendResponseHeaders(200, 0);
-            try (exchange; OutputStream os = exchange.getResponseBody()) {
-                clients.add(os);
-                clientConnectedLatch.countDown();
-                try {
-                    String msg = "{\"type\":\"volume_change\", \"value\":" +
-                            String.format(Locale.US, "%.2f", lastBroadcastVolume >= 0 ? lastBroadcastVolume : 0.1f) + "}";
-                    byte[] bytes = ("data: " + msg + "\n\n").getBytes(StandardCharsets.UTF_8);
-                    os.write(bytes);
-                    os.flush();
-                    boolean isConnected = true;
-                    CountDownLatch pingWait = new CountDownLatch(1);
-                    while (isConnected && !Thread.currentThread().isInterrupted()) {
-                        try {
-                            if (!pingWait.await(2, TimeUnit.SECONDS)) {
-                                os.write(":\n\n".getBytes(StandardCharsets.UTF_8));
-                                os.flush();
-                            }
-                        } catch (IOException e) {
-                            isConnected = false;
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            isConnected = false;
+
+            ClientConnection client = new ClientConnection(exchange.getResponseBody());
+            clients.add(client);
+            clientConnectedLatch.countDown();
+
+            try (exchange) {
+                String msg = "{\"type\":\"volume_change\", \"value\":" +
+                        String.format(Locale.US, "%.2f", lastBroadcastVolume >= 0 ? lastBroadcastVolume : 0.1f) + "}";
+                byte[] bytes = ("data: " + msg + "\n\n").getBytes(StandardCharsets.UTF_8);
+
+                client.send(bytes);
+
+                boolean isConnected = true;
+                CountDownLatch pingWait = new CountDownLatch(1);
+                byte[] pingBytes = ":\n\n".getBytes(StandardCharsets.UTF_8);
+
+                while (isConnected && !Thread.currentThread().isInterrupted()) {
+                    try {
+                        if (!pingWait.await(2, TimeUnit.SECONDS)) {
+                            client.send(pingBytes);
                         }
+                    } catch (IOException e) {
+                        isConnected = false;
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        isConnected = false;
                     }
-                } finally {
-                    clients.remove(os);
                 }
+            } finally {
+                clients.remove(client);
             }
         }
     }
