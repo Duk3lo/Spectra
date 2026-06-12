@@ -42,6 +42,10 @@ public class AudioEngine {
 
     private float liveVolume = 0.1f;
 
+    private volatile boolean virtualPlayback = false;
+    private volatile long virtualPlaybackStartMs = 0L;
+    private volatile long virtualPlaybackOffsetMs = 0L;
+
     public AudioEngine(AudioConfig config, EngineLogger logger) {
         this.config = Objects.requireNonNull(config, "config");
         this.logger = Objects.requireNonNull(logger, "logger");
@@ -136,7 +140,6 @@ public class AudioEngine {
         startPlaybackAsync(() -> AudioDecoder.loadResource(resourcePath), startTimeMs, onPlay);
     }
 
-
     private void startPlaybackAsync(Supplier<AudioBuffer> loader, long startTimeMs, Runnable onPlay) {
         if (executor == null) {
             throw new IllegalStateException("Engine not started. Call start() first.");
@@ -155,17 +158,32 @@ public class AudioEngine {
                     currentBuffer = newBuffer;
                     beatDetector = newDetector;
 
-                    player.load(currentBuffer, liveVolume);
-                    if (startTimeMs > 0) {
-                        player.setOffsetSeconds(startTimeMs / 1000.0f);
+                    if (OpenALContext.isReady()) {
+                        virtualPlayback = false;
+
+                        player.load(currentBuffer, liveVolume);
+                        if (startTimeMs > 0) {
+                            player.setOffsetSeconds(startTimeMs / 1000.0f);
+                        }
+
+                        player.play(false);
+                    } else {
+                        virtualPlayback = true;
+                        virtualPlaybackOffsetMs = startTimeMs;
+                        virtualPlaybackStartMs = System.currentTimeMillis();
                     }
 
-                    player.play(false);
                     AudioAPI.reset();
+                    AudioAPI.setPlaying(true);
+                    AudioAPI.setPaused(false);
                 }
 
                 if (onPlay != null) {
-                    waitForPlaybackAndRun(onPlay, 0);
+                    if (OpenALContext.isReady()) {
+                        waitForPlaybackAndRun(onPlay, 0);
+                    } else {
+                        onPlay.run();
+                    }
                 }
 
             } catch (Exception e) {
@@ -191,7 +209,14 @@ public class AudioEngine {
             if (currentBuffer != null && engineRunning) {
                 float targetSeconds = timeMs / 1000.0f;
                 targetSeconds = Math.clamp(targetSeconds, 0.0f, currentBuffer.durationSeconds());
-                player.setOffsetSeconds(targetSeconds);
+
+                if (OpenALContext.isReady()) {
+                    player.setOffsetSeconds(targetSeconds);
+                } else if (virtualPlayback) {
+                    virtualPlaybackOffsetMs = timeMs;
+                    virtualPlaybackStartMs = System.currentTimeMillis() - timeMs;
+                }
+
                 AudioAPI.setCurrentPositionSeconds(targetSeconds);
                 logger.info("Seeked to: " + targetSeconds + "s");
             }
@@ -215,13 +240,29 @@ public class AudioEngine {
             synchronized (engineLock) {
                 if (currentBuffer == null || beatDetector == null || analyzer == null) return;
 
-                int state = player.getState();
-                offset = player.getOffsetSeconds();
+                boolean openALReady = OpenALContext.isReady();
+                int state;
+
+                if (openALReady) {
+                    state = player.getState();
+                    offset = player.getOffsetSeconds();
+                } else if (virtualPlayback) {
+                    state = AL_PLAYING;
+                    offset = ((System.currentTimeMillis() - virtualPlaybackStartMs) / 1000.0f)
+                            + (virtualPlaybackOffsetMs / 1000.0f);
+                } else {
+                    state = AL_STOPPED;
+                    offset = 0f;
+                }
+
                 duration = currentBuffer.durationSeconds();
 
                 if (state == AL_STOPPED && offset >= duration - 0.1f) {
                     logger.info("Song finished. Clearing memory...");
                     currentBuffer = null;
+                    virtualPlayback = false;
+                    virtualPlaybackStartMs = 0L;
+                    virtualPlaybackOffsetMs = 0L;
                     AudioAPI.reset();
                     return;
                 }
@@ -254,6 +295,7 @@ public class AudioEngine {
                     float[] emptyFrame = new float[numBars];
                     beatDetector.processFrame(emptyFrame, System.currentTimeMillis());
                 }
+
                 bars = beatDetector.getSmoothedBars();
                 intensities = beatDetector.getBeatIntensity();
 
@@ -266,6 +308,7 @@ public class AudioEngine {
                 combo = AudioAPI.getHitCombo();
                 speed = AudioAPI.getParticleSpeedMultiplier();
             }
+
             if (webVisualizer != null) {
                 webVisualizer.update(
                         bars, intensities, features, energy,
@@ -294,7 +337,13 @@ public class AudioEngine {
 
     public void pauseSong() {
         synchronized (engineLock) {
-            player.pause();
+            if (OpenALContext.isReady()) {
+                player.pause();
+            } else if (virtualPlayback) {
+                virtualPlaybackOffsetMs = System.currentTimeMillis() - virtualPlaybackStartMs;
+                virtualPlayback = false;
+            }
+
             AudioAPI.setPaused(true);
             AudioAPI.setPlaying(false);
         }
@@ -302,7 +351,13 @@ public class AudioEngine {
 
     public void resumeSong() {
         synchronized (engineLock) {
-            player.play(false);
+            if (OpenALContext.isReady()) {
+                player.play(false);
+            } else {
+                virtualPlayback = true;
+                virtualPlaybackStartMs = System.currentTimeMillis() - virtualPlaybackOffsetMs;
+            }
+
             AudioAPI.setPaused(false);
             AudioAPI.setPlaying(true);
         }
@@ -310,7 +365,14 @@ public class AudioEngine {
 
     public void stopSong() {
         synchronized (engineLock) {
-            player.stop();
+            if (OpenALContext.isReady()) {
+                player.stop();
+            }
+
+            virtualPlayback = false;
+            virtualPlaybackStartMs = 0L;
+            virtualPlaybackOffsetMs = 0L;
+
             AudioAPI.setPlaying(false);
             AudioAPI.setPaused(true);
         }
