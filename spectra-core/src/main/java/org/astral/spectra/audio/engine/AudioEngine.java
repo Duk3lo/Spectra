@@ -104,7 +104,7 @@ public class AudioEngine {
         Objects.requireNonNull(newConfig, "newConfig");
         logger.info("\u001B[36m[AudioEngine] Applying new configuration live...\u001B[0m");
 
-        boolean wasUsingOpenAL = isUsingOpenAL(); // Guardar el estado ANTES de aplicar cambios
+        boolean wasUsingOpenAL = isUsingOpenAL();
 
         executor.execute(() -> {
             synchronized (engineLock) {
@@ -144,7 +144,6 @@ public class AudioEngine {
         }
 
         if (toOpenAL) {
-            // Cambio: de Web Audio (Virtual) a OpenAL
             virtualPlayback = false;
             player.load(currentBuffer, liveVolume);
             player.setOffsetSeconds(currentOffset);
@@ -152,17 +151,12 @@ public class AudioEngine {
                 player.play(false);
             }
         } else {
-            // Cambio: de OpenAL a Web Audio (Virtual)
             player.stop();
             virtualPlayback = !isCurrentlyPaused;
             virtualPlaybackStartMs = System.currentTimeMillis();
             virtualPlaybackOffsetMs = (long) (currentOffset * 1000L);
         }
     }
-
-    // -------------------------------------------------------------------------
-    // PLAYBACK PÚBLICO
-    // -------------------------------------------------------------------------
 
     public float getVolume() {
         return this.liveVolume;
@@ -196,7 +190,7 @@ public class AudioEngine {
     }
 
     public void playResource(String resourcePath, long startTimeMs, Runnable onPlay) {
-        if (webVisualizer != null) { // Quitamos la condición de !isUsingOpenAL()
+        if (webVisualizer != null) {
             try (InputStream is = getClass().getResourceAsStream(resourcePath)) {
                 if (is != null) {
                     webVisualizer.setAudioTrack(is.readAllBytes());
@@ -222,8 +216,6 @@ public class AudioEngine {
                 synchronized (engineLock) {
                     if (!engineRunning) return;
 
-                    // FIX: notificar al browser si debe reproducir audio o solo visualizar.
-                    // Esto previene el doble audio (OpenAL + WebAudio al mismo tiempo).
                     if (webVisualizer != null) {
                         webVisualizer.setAudioEnabled(!isUsingOpenAL());
                     }
@@ -294,10 +286,6 @@ public class AudioEngine {
             }
         }
     }
-
-    // -------------------------------------------------------------------------
-    // LOOP PRINCIPAL
-    // -------------------------------------------------------------------------
 
     private void processAudioFrame() {
         if (!engineRunning) return;
@@ -415,10 +403,6 @@ public class AudioEngine {
             logger.error("\u001B[31m[AudioEngine] Error processing frame: " + t.getMessage() + "\u001B[0m", t);
         }
     }
-
-    // -------------------------------------------------------------------------
-    // CONTROLES
-    // -------------------------------------------------------------------------
 
     public void setVolume(float volume) {
         this.liveVolume = Math.clamp(volume, 0.0f, 1.0f);
