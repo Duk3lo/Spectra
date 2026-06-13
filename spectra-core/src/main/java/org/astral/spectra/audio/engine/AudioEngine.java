@@ -46,6 +46,8 @@ public class AudioEngine {
     private volatile long virtualPlaybackStartMs = 0L;
     private volatile long virtualPlaybackOffsetMs = 0L;
 
+    private float lastKnownOffset = 0.0f;
+
     public AudioEngine(AudioConfig config, EngineLogger logger) {
         this.config = Objects.requireNonNull(config, "config");
         this.logger = Objects.requireNonNull(logger, "logger");
@@ -243,27 +245,48 @@ public class AudioEngine {
                 boolean openALReady = OpenALContext.isReady();
                 int state;
 
+                duration = currentBuffer.durationSeconds();
+
                 if (openALReady) {
                     state = player.getState();
                     offset = player.getOffsetSeconds();
+
+                    if (state == AL_STOPPED && offset < 0.1f && lastKnownOffset >= duration - 0.5f) {
+                        offset = duration;
+                    }
+                    lastKnownOffset = offset;
+
                 } else if (virtualPlayback) {
-                    state = AL_PLAYING;
                     offset = ((System.currentTimeMillis() - virtualPlaybackStartMs) / 1000.0f)
                             + (virtualPlaybackOffsetMs / 1000.0f);
+
+                    if (offset >= duration) {
+                        state = AL_STOPPED;
+                        offset = duration;
+                    } else {
+                        state = AL_PLAYING;
+                    }
+                    lastKnownOffset = offset;
+
                 } else {
                     state = AL_STOPPED;
                     offset = 0f;
                 }
 
-                duration = currentBuffer.durationSeconds();
-
-                if (state == AL_STOPPED && offset >= duration - 0.1f) {
-                    logger.info("Song finished. Clearing memory...");
+                if (state == AL_STOPPED && offset >= duration - 0.5f) {
+                    logger.info("\u001B[32m[AudioEngine] Song finished. Clearing memory...\u001B[0m");
                     currentBuffer = null;
                     virtualPlayback = false;
                     virtualPlaybackStartMs = 0L;
                     virtualPlaybackOffsetMs = 0L;
+                    lastKnownOffset = 0.0f;
                     AudioAPI.reset();
+
+                    if (webVisualizer != null) {
+                        int numBars = config.getVisualizer().getNumBars();
+                        webVisualizer.update(new float[numBars], new float[numBars],
+                                new java.util.HashMap<>(), 0f, 0, 1f, true, duration, duration);
+                    }
                     return;
                 }
 
@@ -372,6 +395,7 @@ public class AudioEngine {
             virtualPlayback = false;
             virtualPlaybackStartMs = 0L;
             virtualPlaybackOffsetMs = 0L;
+            lastKnownOffset = 0.0f;
 
             AudioAPI.setPlaying(false);
             AudioAPI.setPaused(true);
