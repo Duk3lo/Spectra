@@ -4,7 +4,7 @@ plugins {
 
 allprojects {
     group = "org.astral.spectra"
-    version = "0.0.1"
+    version = "1.0.0"
 
     repositories {
         mavenCentral()
