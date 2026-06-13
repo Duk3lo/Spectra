@@ -30,16 +30,19 @@ public final class SpectraConfigManager {
 
         this.audioConfig = new AudioConfig();
         AudioConfig.General gen = new AudioConfig.General();
-        gen.setCurrentVolume((float) config.getDouble("audio.general.current-volume", 1.0));
+
+        gen.setForceWebAudio(config.getBoolean("audio.general.force-web-audio", false));
+        gen.setCurrentVolume((float) config.getDouble("audio.general.current-volume", 0.0));
         gen.setUpdateRateMs(config.getInt("audio.general.update-rate-ms", 16));
         gen.setDelayedTask(config.getString("audio.general.delayed-task", "0s"));
-        gen.setAutoOpenBrowser(config.getBoolean("web-visualizer.auto-open-browser", true));
+
+        gen.setAutoOpenBrowser(config.getBoolean("web-visualizer.auto-open-browser", false));
 
         audioConfig.setGeneral(gen);
 
         AudioConfig.Visualizer vis = new AudioConfig.Visualizer();
         vis.setFftSize(config.getInt("audio.visualizer.fft-size", 2048));
-        vis.setNumBars(config.getInt("audio.visualizer.num-bars", 64));
+        vis.setNumBars(config.getInt("audio.visualizer.num-bars", 32));
         audioConfig.setVisualizer(vis);
 
         AudioConfig.Smoothing smoothing = new AudioConfig.Smoothing();

@@ -32,9 +32,16 @@ public final class WebVisualizer {
     private boolean autoOpen = true;
     private volatile float lastBroadcastVolume = -1f;
 
+    private volatile byte[] currentAudioData = null;
+    private volatile long currentAudioId = 0;
+
+    private volatile long lastUpdateMs = 0;
+
     private String currentUrl = "http://localhost:8080";
     private VolumeCallback volumeCallback;
     private final CountDownLatch clientConnectedLatch = new CountDownLatch(1);
+
+    private volatile boolean audioEnabled = true;
 
     public interface VolumeCallback {
         void onVolumeChange(float level);
@@ -58,16 +65,28 @@ public final class WebVisualizer {
         this.logger = logger;
     }
 
-    public void setAutoOpen(boolean autoOpen) {
-        this.autoOpen = autoOpen;
+    public void setAutoOpen(boolean autoOpen) { this.autoOpen = autoOpen; }
+    public void setVolumeCallback(VolumeCallback callback) { this.volumeCallback = callback; }
+    public String getUrl() { return currentUrl; }
+
+    public void setAudioTrack(byte[] data) {
+        this.currentAudioData = data;
+        this.currentAudioId = System.currentTimeMillis();
     }
 
-    public void setVolumeCallback(VolumeCallback callback) {
-        this.volumeCallback = callback;
-    }
-
-    public String getUrl() {
-        return currentUrl;
+    /**
+     * Notifica al browser si debe reproducir audio o solo mostrar la visualización.
+     * Llámalo con false cuando OpenAL está activo (para evitar doble reproducción).
+     */
+    public void setAudioEnabled(boolean enabled) {
+        this.audioEnabled = enabled;
+        if (server != null && !clients.isEmpty()) {
+            String msg = "{\"type\":\"audio_mode\",\"enabled\":" + enabled + "}";
+            byte[] bytes = ("data: " + msg + "\n\n").getBytes(StandardCharsets.UTF_8);
+            clients.removeIf(client -> {
+                try { client.send(bytes); return false; } catch (IOException e) { return true; }
+            });
+        }
     }
 
     public void start() {
@@ -88,17 +107,17 @@ public final class WebVisualizer {
         try {
             server.createContext("/stream", new StreamHandler());
             server.createContext("/volume", new VolumeHandler());
+            server.createContext("/audio_track", new AudioTrackHandler());
             server.createContext("/", new StaticResourceHandler(webFolder));
 
-            server.setExecutor(Executors.newCachedThreadPool());
+
+            server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
             server.start();
 
             currentUrl = "http://localhost:" + port;
             logger.info("\u001B[32m[" + engineName + "] Web server started at " + currentUrl + "\u001B[0m");
 
-            if (autoOpen) {
-                abrirNavegador(currentUrl);
-            }
+            if (autoOpen) abrirNavegador(currentUrl);
 
         } catch (Exception e) {
             logger.error("Error loading web server: " + e.getMessage(), e);
@@ -110,9 +129,7 @@ public final class WebVisualizer {
         try {
             boolean connected = clientConnectedLatch.await(10, TimeUnit.SECONDS);
             if (connected) logger.info("\u001B[32m[" + engineName + "] Browser synchronized!\u001B[0m");
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
     }
 
     private void abrirNavegador(String url) {
@@ -130,13 +147,9 @@ public final class WebVisualizer {
         if (server != null) {
             byte[] shutdownMsg = "data: {\"type\":\"shutdown\"}\n\n".getBytes(StandardCharsets.UTF_8);
             for (ClientConnection client : clients) {
-                try {
-                    client.send(shutdownMsg);
-                } catch (IOException ignored) {}
+                try { client.send(shutdownMsg); } catch (IOException ignored) {}
             }
-
             try { Thread.sleep(500); } catch (InterruptedException ignored) {}
-
             clients.forEach(ClientConnection::close);
             clients.clear();
             server.stop(0);
@@ -154,17 +167,18 @@ public final class WebVisualizer {
         byte[] bytes = ("data: " + msg + "\n\n").getBytes(StandardCharsets.UTF_8);
 
         clients.removeIf(client -> {
-            try {
-                client.send(bytes);
-                return false;
-            } catch (IOException e) {
-                return true;
-            }
+            try { client.send(bytes); return false; } catch (IOException e) { return true; }
         });
     }
 
-    public void update(float[] bars, float[] beatIntensity, Map<String, Float> features, float energy, int combo, float speed, boolean isPaused, float currentSecs, float totalSecs) {
+    public void update(float[] bars, float[] beatIntensity, Map<String, Float> features,
+                       float energy, int combo, float speed, boolean isPaused,
+                       float currentSecs, float totalSecs, float liveVolume) {
         if (clients.isEmpty() || server == null) return;
+
+        long now = System.currentTimeMillis();
+        if (now - lastUpdateMs < 50) return;
+        lastUpdateMs = now;
 
         StringBuilder sb = new StringBuilder();
         sb.append("{\"bars\":[");
@@ -182,7 +196,8 @@ public final class WebVisualizer {
         sb.append("],\"features\":{");
         int index = 0;
         for (Map.Entry<String, Float> entry : features.entrySet()) {
-            sb.append("\"").append(escapeJson(entry.getKey())).append("\":").append(String.format(Locale.US, "%.3f", entry.getValue()));
+            sb.append("\"").append(escapeJson(entry.getKey())).append("\":")
+                    .append(String.format(Locale.US, "%.3f", entry.getValue()));
             if (index < features.size() - 1) sb.append(",");
             index++;
         }
@@ -191,23 +206,85 @@ public final class WebVisualizer {
                 .append(",\"combo\":").append(combo)
                 .append(",\"speed\":").append(String.format(Locale.US, "%.2f", speed))
                 .append(",\"paused\":").append(isPaused)
-                .append(",\"current\":").append(String.format(Locale.US, "%.1f", currentSecs))
-                .append(",\"total\":").append(String.format(Locale.US, "%.1f", totalSecs))
+                .append(",\"current\":").append(String.format(Locale.US, "%.3f", currentSecs))
+                .append(",\"total\":").append(String.format(Locale.US, "%.3f", totalSecs))
+                .append(",\"audioId\":").append(currentAudioId)
+                .append(",\"audioEnabled\":").append(audioEnabled)
+                .append(",\"volume\":").append(String.format(Locale.US, "%.3f", liveVolume))
                 .append("}");
 
         byte[] bytes = ("data: " + sb + "\n\n").getBytes(StandardCharsets.UTF_8);
         clients.removeIf(client -> {
-            try {
-                client.send(bytes);
-                return false;
-            } catch (IOException e) {
-                return true;
-            }
+            try { client.send(bytes); return false; } catch (IOException e) { return true; }
         });
     }
 
     private @NotNull String escapeJson(@NotNull String s) {
         return s.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    class AudioTrackHandler implements HttpHandler {
+        @Override
+        public void handle(@NotNull HttpExchange exchange) throws IOException {
+            byte[] data = currentAudioData;
+            if (data == null) {
+                exchange.sendResponseHeaders(404, -1);
+                return;
+            }
+
+            exchange.getResponseHeaders().add("Content-Type", "audio/ogg");
+            exchange.getResponseHeaders().add("Accept-Ranges", "bytes");
+
+            String rangeHeader = exchange.getRequestHeaders().getFirst("Range");
+            if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
+                try {
+                    String range = rangeHeader.substring(6);
+                    String[] split = range.split("-");
+                    int start = Integer.parseInt(split[0]);
+                    int end = split.length > 1 && !split[1].isEmpty()
+                            ? Integer.parseInt(split[1]) : data.length - 1;
+
+                    if (start >= data.length) {
+                        exchange.getResponseHeaders().add("Content-Range", "bytes */" + data.length);
+                        exchange.sendResponseHeaders(416, -1);
+                        exchange.close();
+                        return;
+                    }
+
+                    end = Math.min(end, data.length - 1);
+                    int length = end - start + 1;
+
+                    exchange.getResponseHeaders().add("Content-Range",
+                            "bytes " + start + "-" + end + "/" + data.length);
+                    exchange.sendResponseHeaders(206, length);
+
+                    try (OutputStream os = exchange.getResponseBody()) {
+                        byte[] buffer = new byte[8192];
+                        int bytesWritten = 0;
+                        while (bytesWritten < length) {
+                            int toWrite = Math.min(buffer.length, length - bytesWritten);
+                            os.write(data, start + bytesWritten, toWrite);
+                            os.flush();
+                            bytesWritten += toWrite;
+                        }
+                    }
+                    return;
+                } catch (Exception ignored) {
+                }
+            }
+
+            exchange.sendResponseHeaders(200, data.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                byte[] buffer = new byte[8192];
+                int bytesWritten = 0;
+                while (bytesWritten < data.length) {
+                    int toWrite = Math.min(buffer.length, data.length - bytesWritten);
+                    os.write(data, bytesWritten, toWrite);
+                    os.flush();
+                    bytesWritten += toWrite;
+                }
+            } catch (Exception ignored) {}
+        }
     }
 
     class StaticResourceHandler implements HttpHandler {
@@ -239,12 +316,12 @@ public final class WebVisualizer {
 
         private @NotNull String getMimeType(@NotNull String path) {
             if (path.endsWith(".html")) return "text/html; charset=UTF-8";
-            if (path.endsWith(".css")) return "text/css";
-            if (path.endsWith(".js")) return "application/javascript";
-            if (path.endsWith(".png")) return "image/png";
+            if (path.endsWith(".css"))  return "text/css";
+            if (path.endsWith(".js"))   return "application/javascript";
+            if (path.endsWith(".png"))  return "image/png";
             if (path.endsWith(".jpg") || path.endsWith(".jpeg")) return "image/jpeg";
-            if (path.endsWith(".svg")) return "image/svg+xml";
-            if (path.endsWith(".ico")) return "image/x-icon";
+            if (path.endsWith(".svg"))  return "image/svg+xml";
+            if (path.endsWith(".ico"))  return "image/x-icon";
             if (path.endsWith(".json")) return "application/json";
             return "application/octet-stream";
         }
@@ -256,7 +333,8 @@ public final class WebVisualizer {
             String q = exchange.getRequestURI().getQuery();
             if (q != null && q.startsWith("level=")) {
                 try {
-                    if (volumeCallback != null) volumeCallback.onVolumeChange(Float.parseFloat(q.split("=")[1]));
+                    if (volumeCallback != null)
+                        volumeCallback.onVolumeChange(Float.parseFloat(q.split("=")[1]));
                 } catch (Exception ignored) {}
             }
             exchange.sendResponseHeaders(200, -1);
@@ -267,29 +345,42 @@ public final class WebVisualizer {
     class StreamHandler implements HttpHandler {
         @Override
         public void handle(@NotNull HttpExchange exchange) throws IOException {
-            exchange.getResponseHeaders().add("Content-Type", "text/event-stream");
-            exchange.getResponseHeaders().add("Cache-Control", "no-cache");
-            exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+            exchange.getResponseHeaders().add("Content-Type", "text/event-stream; charset=UTF-8");
+            exchange.getResponseHeaders().add("Cache-Control", "no-cache, no-store, must-revalidate");
             exchange.getResponseHeaders().add("Connection", "keep-alive");
+            exchange.getResponseHeaders().add("X-Accel-Buffering", "no");
             exchange.sendResponseHeaders(200, 0);
-            try (exchange; OutputStream os = exchange.getResponseBody()) {
-                CountDownLatch keepAliveLatch = new CountDownLatch(1);
-                ClientConnection client = new ClientConnection(os, keepAliveLatch);
-                clients.add(client);
-                clientConnectedLatch.countDown();
-                try {
-                    String msg = "{\"type\":\"volume_change\", \"value\":" + String.format(Locale.US, "%.2f", lastBroadcastVolume >= 0 ? lastBroadcastVolume : 0.1f) + "}";
-                    client.send(("data: " + msg + "\n\n").getBytes(StandardCharsets.UTF_8));
-                    byte[] pingBytes = ":\n\n".getBytes(StandardCharsets.UTF_8);
-                    while (!Thread.currentThread().isInterrupted() && !keepAliveLatch.await(2, TimeUnit.SECONDS)) {
-                        client.send(pingBytes);
-                    }
-                } catch (IOException ignored) {
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } finally {
-                    clients.remove(client);
+
+            OutputStream os = exchange.getResponseBody();
+            CountDownLatch keepAliveLatch = new CountDownLatch(1);
+            ClientConnection client = new ClientConnection(os, keepAliveLatch);
+            clients.add(client);
+            clientConnectedLatch.countDown();
+
+            try {
+                String initMsg = "{\"type\":\"volume_change\", \"value\":"
+                        + String.format(Locale.US, "%.2f",
+                        lastBroadcastVolume >= 0 ? lastBroadcastVolume : 0.1f) + "}";
+                client.send(("data: " + initMsg + "\n\n").getBytes(StandardCharsets.UTF_8));
+
+                String audioModeMsg = "{\"type\":\"audio_mode\",\"enabled\":" + audioEnabled + "}";
+                client.send(("data: " + audioModeMsg + "\n\n").getBytes(StandardCharsets.UTF_8));
+
+                byte[] pingBytes = ":\n\n".getBytes(StandardCharsets.UTF_8);
+
+                while (!Thread.currentThread().isInterrupted()) {
+                    boolean shouldExit = keepAliveLatch.await(2, TimeUnit.SECONDS);
+                    if (shouldExit) break;
+                    client.send(pingBytes);
                 }
+
+            } catch (IOException ignored) {
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } finally {
+                clients.remove(client);
+                try { os.close(); }       catch (Exception ignored) {}
+                try { exchange.close(); } catch (Exception ignored) {}
             }
         }
     }

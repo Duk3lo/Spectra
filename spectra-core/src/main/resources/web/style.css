@@ -43,6 +43,39 @@ h1 {
     justify-content: center;
 }
 
+/* AUDIO UNLOCK OVERLAY */
+#audio-unlock {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    backdrop-filter: blur(5px);
+    transition: opacity 0.3s;
+}
+
+#audio-unlock h2 {
+    color: #00ffcc;
+    font-size: 32px;
+    text-shadow: 0 0 15px #00ffcc;
+    margin-bottom: 10px;
+    animation: pulse 1.5s infinite alternate;
+}
+
+#audio-unlock p {
+    color: #aaa;
+    font-size: 16px;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(1.05); opacity: 1; }
+}
+
 /* AUDIO VISUALIZER BARS */
 .container {
     display: flex;
@@ -74,7 +107,8 @@ h1 {
     width: 100%;
     background-color: #444;
     border-radius: 3px 3px 0 0;
-    transition: height 0.03s ease-out, background-color 0.1s, box-shadow 0.1s;
+    /* AJUSTE: Quitamos la transicion de 'height' porque JS se encarga a altos FPS reales ahora */
+    transition: background-color 0.1s, box-shadow 0.1s;
     height: 5%;
 }
 

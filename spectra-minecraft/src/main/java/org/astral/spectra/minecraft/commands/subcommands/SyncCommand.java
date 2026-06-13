@@ -7,14 +7,14 @@ import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 
-public final class AdjustCmd implements SubCommand {
+public final class SyncCommand implements SubCommand {
     private final SpectraPlugin plugin;
 
-    public AdjustCmd(SpectraPlugin plugin) {
+    public SyncCommand(SpectraPlugin plugin) {
         this.plugin = plugin;
     }
 
-    @Override public @NonNull String getName() { return "adjust"; }
+    @Override public @NonNull String getName() { return "sync"; }
 
     @Override
     public void execute(@NonNull CommandSender sender, String @NonNull [] args) {
@@ -24,7 +24,7 @@ public final class AdjustCmd implements SubCommand {
         }
 
         if (args.length < 2) {
-            sender.sendMessage("§eUsage: /spectra adjust <milliseconds> (e.g. 500 or -500)");
+            sender.sendMessage("§eUsage: /spectra sync <milliseconds> (e.g. 500 or -500)");
             return;
         }
 

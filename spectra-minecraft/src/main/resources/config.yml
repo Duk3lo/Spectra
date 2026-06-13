@@ -8,13 +8,14 @@ web-visualizer:
 
 audio:
   general:
+    force-web-audio: false
     current-volume: 0.0
     update-rate-ms: 16
     delayed-task: "0s"
 
   visualizer:
     fft-size: 2048
-    num-bars: 64
+    num-bars: 32
 
   smoothing:
     attack: 0.85

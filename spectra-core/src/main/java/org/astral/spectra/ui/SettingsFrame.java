@@ -17,6 +17,7 @@ public final class SettingsFrame extends JDialog {
     private static final Color MUTED = new Color(160, 160, 175);
     private static final Color ACCENT = new Color(0, 255, 204);
 
+    private final JCheckBox chkForceWebAudio;
     private final JComboBox<Integer> fftCombo;
     private final JSlider barsSlider;
     private final JSlider attackSlider;
@@ -38,6 +39,10 @@ public final class SettingsFrame extends JDialog {
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout());
         getContentPane().setBackground(BG);
+
+        chkForceWebAudio = new JCheckBox("Force Web Audio (Mute OpenAL)");
+        chkForceWebAudio.setSelected(currentConfig.getGeneral().isForceWebAudio());
+        styleComponent(chkForceWebAudio);
 
         fftCombo = new JComboBox<>(new Integer[]{512, 1024, 2048, 4096});
         fftCombo.setSelectedItem(currentConfig.getVisualizer().getFftSize());
@@ -112,10 +117,12 @@ public final class SettingsFrame extends JDialog {
 
         JButton btnApply = createStyledButton();
 
-        btnApply.addActionListener(e -> {
+        btnApply.addActionListener(_ -> {
             AudioConfig newConfig = new AudioConfig();
-            newConfig.getGeneral().setCurrentVolume(AudioAPI.getVolume());
+            newConfig.getGeneral().setCurrentVolume(engine.getVolume());
             newConfig.getGeneral().setUpdateRateMs(currentConfig.getGeneral().getUpdateRateMs());
+
+            newConfig.getGeneral().setForceWebAudio(chkForceWebAudio.isSelected());
 
             Integer selected = (Integer) fftCombo.getSelectedItem();
             newConfig.getVisualizer().setFftSize(selected != null ? selected : 1024);
@@ -141,6 +148,10 @@ public final class SettingsFrame extends JDialog {
 
     private @NotNull JPanel buildVisualizerPanel() {
         JPanel p = createTabPanel();
+
+        p.add(chkForceWebAudio);
+        p.add(Box.createVerticalStrut(15));
+
         p.add(createLabeledRow(fftCombo));
         p.add(Box.createVerticalStrut(20));
         p.add(createSliderRow("Band Count (Bars):", barsSlider, " bars"));
@@ -232,7 +243,7 @@ public final class SettingsFrame extends JDialog {
         lblValue.setFont(new Font("SansSerif", Font.PLAIN, 12));
         lblValue.setPreferredSize(new Dimension(65, 20));
 
-        slider.addChangeListener(e -> lblValue.setText(slider.getValue() + suffix));
+        slider.addChangeListener(_ -> lblValue.setText(slider.getValue() + suffix));
 
         top.add(lblTitle, BorderLayout.WEST);
         top.add(lblValue, BorderLayout.EAST);

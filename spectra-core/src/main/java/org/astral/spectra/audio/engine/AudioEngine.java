@@ -11,6 +11,8 @@ import org.astral.spectra.config.AudioConfig;
 import org.astral.spectra.logging.EngineLogger;
 import org.astral.spectra.web.WebVisualizer;
 
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.concurrent.*;
@@ -59,6 +61,14 @@ public class AudioEngine {
         this.webVisualizer = webVisualizer;
     }
 
+    /**
+     * true  → usar OpenAL  (OpenAL inicializado + forceWebAudio=false)
+     * false → usar Web audio (browser reproduce el audio)
+     */
+    private boolean isUsingOpenAL() {
+        return OpenALContext.isReady() && !config.getGeneral().isForceWebAudio();
+    }
+
     public void start() {
         synchronized (engineLock) {
             if (engineRunning) return;
@@ -94,9 +104,12 @@ public class AudioEngine {
         Objects.requireNonNull(newConfig, "newConfig");
         logger.info("\u001B[36m[AudioEngine] Applying new configuration live...\u001B[0m");
 
+        boolean wasUsingOpenAL = isUsingOpenAL(); // Guardar el estado ANTES de aplicar cambios
+
         executor.execute(() -> {
             synchronized (engineLock) {
                 this.config = newConfig;
+                boolean nowUsingOpenAL = isUsingOpenAL();
 
                 setVolume(config.getGeneral().getCurrentVolume());
 
@@ -106,6 +119,10 @@ public class AudioEngine {
                 if (currentBuffer != null) {
                     try {
                         beatDetector.preScan(currentBuffer, analyzer);
+
+                        if (wasUsingOpenAL != nowUsingOpenAL) {
+                            transferPlaybackState(nowUsingOpenAL);
+                        }
                     } catch (Exception e) {
                         logger.error("Error during pre Scan in reload Configuration", e);
                     }
@@ -118,6 +135,39 @@ public class AudioEngine {
         });
     }
 
+    private void transferPlaybackState(boolean toOpenAL) {
+        float currentOffset = lastKnownOffset;
+        boolean isCurrentlyPaused = toOpenAL ? !virtualPlayback : (player.getState() != AL_PLAYING);
+
+        if (webVisualizer != null) {
+            webVisualizer.setAudioEnabled(!toOpenAL);
+        }
+
+        if (toOpenAL) {
+            // Cambio: de Web Audio (Virtual) a OpenAL
+            virtualPlayback = false;
+            player.load(currentBuffer, liveVolume);
+            player.setOffsetSeconds(currentOffset);
+            if (!isCurrentlyPaused) {
+                player.play(false);
+            }
+        } else {
+            // Cambio: de OpenAL a Web Audio (Virtual)
+            player.stop();
+            virtualPlayback = !isCurrentlyPaused;
+            virtualPlaybackStartMs = System.currentTimeMillis();
+            virtualPlaybackOffsetMs = (long) (currentOffset * 1000L);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // PLAYBACK PÚBLICO
+    // -------------------------------------------------------------------------
+
+    public float getVolume() {
+        return this.liveVolume;
+    }
+
     public void playSong(Path path) {
         playSong(path, 0, null);
     }
@@ -127,6 +177,13 @@ public class AudioEngine {
     }
 
     public void playSong(Path path, long startTimeMs, Runnable onPlay) {
+        if (webVisualizer != null) {
+            try {
+                webVisualizer.setAudioTrack(Files.readAllBytes(path));
+            } catch (Exception e) {
+                logger.error("Failed to read raw file for web visualizer", e);
+            }
+        }
         startPlaybackAsync(() -> AudioDecoder.loadAudio(path), startTimeMs, onPlay);
     }
 
@@ -139,6 +196,15 @@ public class AudioEngine {
     }
 
     public void playResource(String resourcePath, long startTimeMs, Runnable onPlay) {
+        if (webVisualizer != null) { // Quitamos la condición de !isUsingOpenAL()
+            try (InputStream is = getClass().getResourceAsStream(resourcePath)) {
+                if (is != null) {
+                    webVisualizer.setAudioTrack(is.readAllBytes());
+                }
+            } catch (Exception e) {
+                logger.error("Failed to read raw resource for web visualizer", e);
+            }
+        }
         startPlaybackAsync(() -> AudioDecoder.loadResource(resourcePath), startTimeMs, onPlay);
     }
 
@@ -156,19 +222,25 @@ public class AudioEngine {
                 synchronized (engineLock) {
                     if (!engineRunning) return;
 
+                    // FIX: notificar al browser si debe reproducir audio o solo visualizar.
+                    // Esto previene el doble audio (OpenAL + WebAudio al mismo tiempo).
+                    if (webVisualizer != null) {
+                        webVisualizer.setAudioEnabled(!isUsingOpenAL());
+                    }
+
                     player.cleanup();
                     currentBuffer = newBuffer;
                     beatDetector = newDetector;
 
-                    if (OpenALContext.isReady()) {
+                    if (isUsingOpenAL()) {
                         virtualPlayback = false;
 
                         player.load(currentBuffer, liveVolume);
                         if (startTimeMs > 0) {
                             player.setOffsetSeconds(startTimeMs / 1000.0f);
                         }
-
                         player.play(false);
+
                     } else {
                         virtualPlayback = true;
                         virtualPlaybackOffsetMs = startTimeMs;
@@ -181,7 +253,7 @@ public class AudioEngine {
                 }
 
                 if (onPlay != null) {
-                    if (OpenALContext.isReady()) {
+                    if (isUsingOpenAL()) {
                         waitForPlaybackAndRun(onPlay, 0);
                     } else {
                         onPlay.run();
@@ -197,11 +269,9 @@ public class AudioEngine {
     private void waitForPlaybackAndRun(Runnable onPlay, int attempts) {
         if (player.getState() == AL_PLAYING) {
             onPlay.run();
-        }
-        else if (attempts < 50) {
+        } else if (attempts < 50) {
             executor.schedule(() -> waitForPlaybackAndRun(onPlay, attempts + 1), 1, TimeUnit.MILLISECONDS);
-        }
-        else {
+        } else {
             logger.warn("Playback started but AL_PLAYING state was not reached after 50ms.");
         }
     }
@@ -212,11 +282,11 @@ public class AudioEngine {
                 float targetSeconds = timeMs / 1000.0f;
                 targetSeconds = Math.clamp(targetSeconds, 0.0f, currentBuffer.durationSeconds());
 
-                if (OpenALContext.isReady()) {
+                if (isUsingOpenAL()) {
                     player.setOffsetSeconds(targetSeconds);
                 } else if (virtualPlayback) {
-                    virtualPlaybackOffsetMs = timeMs;
-                    virtualPlaybackStartMs = System.currentTimeMillis() - timeMs;
+                    virtualPlaybackOffsetMs = (long) (targetSeconds * 1000L);
+                    virtualPlaybackStartMs = System.currentTimeMillis();
                 }
 
                 AudioAPI.setCurrentPositionSeconds(targetSeconds);
@@ -224,6 +294,10 @@ public class AudioEngine {
             }
         }
     }
+
+    // -------------------------------------------------------------------------
+    // LOOP PRINCIPAL
+    // -------------------------------------------------------------------------
 
     private void processAudioFrame() {
         if (!engineRunning) return;
@@ -242,12 +316,12 @@ public class AudioEngine {
             synchronized (engineLock) {
                 if (currentBuffer == null || beatDetector == null || analyzer == null) return;
 
-                boolean openALReady = OpenALContext.isReady();
+                boolean useOpenAL = isUsingOpenAL();
                 int state;
 
                 duration = currentBuffer.durationSeconds();
 
-                if (openALReady) {
+                if (useOpenAL) {
                     state = player.getState();
                     offset = player.getOffsetSeconds();
 
@@ -285,7 +359,7 @@ public class AudioEngine {
                     if (webVisualizer != null) {
                         int numBars = config.getVisualizer().getNumBars();
                         webVisualizer.update(new float[numBars], new float[numBars],
-                                new java.util.HashMap<>(), 0f, 0, 1f, true, duration, duration);
+                                new java.util.HashMap<>(), 0f, 0, 1f, true, duration, duration, liveVolume);
                     }
                     return;
                 }
@@ -305,7 +379,6 @@ public class AudioEngine {
 
                         float[] samples = analyzer.extractSamples(currentBuffer, currentSampleIdx);
                         float[] currentFrame = analyzer.computeFFT(samples);
-
                         beatDetector.processFrame(currentFrame, System.currentTimeMillis());
                     }
                     paused = false;
@@ -328,15 +401,13 @@ public class AudioEngine {
                         : new java.util.LinkedHashMap<>();
 
                 energy = AudioAPI.getGlobalEnergy();
-                combo = AudioAPI.getHitCombo();
-                speed = AudioAPI.getParticleSpeedMultiplier();
+                combo  = AudioAPI.getHitCombo();
+                speed  = AudioAPI.getParticleSpeedMultiplier();
             }
 
             if (webVisualizer != null) {
-                webVisualizer.update(
-                        bars, intensities, features, energy,
-                        combo, speed, paused, offset, duration
-                );
+                webVisualizer.update(bars, intensities, features, energy,
+                        combo, speed, paused, offset, duration, liveVolume);
             }
 
         } catch (Throwable t) {
@@ -344,6 +415,10 @@ public class AudioEngine {
             logger.error("\u001B[31m[AudioEngine] Error processing frame: " + t.getMessage() + "\u001B[0m", t);
         }
     }
+
+    // -------------------------------------------------------------------------
+    // CONTROLES
+    // -------------------------------------------------------------------------
 
     public void setVolume(float volume) {
         this.liveVolume = Math.clamp(volume, 0.0f, 1.0f);
@@ -360,10 +435,10 @@ public class AudioEngine {
 
     public void pauseSong() {
         synchronized (engineLock) {
-            if (OpenALContext.isReady()) {
+            if (isUsingOpenAL()) {
                 player.pause();
             } else if (virtualPlayback) {
-                virtualPlaybackOffsetMs = System.currentTimeMillis() - virtualPlaybackStartMs;
+                virtualPlaybackOffsetMs += (System.currentTimeMillis() - virtualPlaybackStartMs);
                 virtualPlayback = false;
             }
 
@@ -374,11 +449,11 @@ public class AudioEngine {
 
     public void resumeSong() {
         synchronized (engineLock) {
-            if (OpenALContext.isReady()) {
+            if (isUsingOpenAL()) {
                 player.play(false);
             } else {
                 virtualPlayback = true;
-                virtualPlaybackStartMs = System.currentTimeMillis() - virtualPlaybackOffsetMs;
+                virtualPlaybackStartMs = System.currentTimeMillis();
             }
 
             AudioAPI.setPaused(false);
@@ -388,7 +463,7 @@ public class AudioEngine {
 
     public void stopSong() {
         synchronized (engineLock) {
-            if (OpenALContext.isReady()) {
+            if (isUsingOpenAL()) {
                 player.stop();
             }
 
@@ -404,9 +479,7 @@ public class AudioEngine {
 
     public void waitForExit() {
         try {
-            if (exitLatch != null) {
-                exitLatch.await();
-            }
+            if (exitLatch != null) exitLatch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -418,29 +491,18 @@ public class AudioEngine {
             shuttingDown = true;
             engineRunning = false;
 
-            if (loopTask != null) {
-                loopTask.cancel(false);
-            }
-
-            if (executor != null) {
-                executor.shutdownNow();
-            }
+            if (loopTask != null) loopTask.cancel(false);
+            if (executor != null) executor.shutdownNow();
 
             player.cleanup();
             OpenALContext.destroy();
 
-            if (webVisualizer != null) {
-                webVisualizer.stop();
-            }
-
-            if (exitLatch != null) {
-                exitLatch.countDown();
-            }
+            if (webVisualizer != null) webVisualizer.stop();
+            if (exitLatch != null) exitLatch.countDown();
         }
     }
 
     public AudioConfig getConfig() {
         return this.config;
     }
-
 }

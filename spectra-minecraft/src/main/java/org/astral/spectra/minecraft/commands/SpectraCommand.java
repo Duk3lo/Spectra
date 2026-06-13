@@ -18,7 +18,7 @@ public final class SpectraCommand implements CommandExecutor, TabCompleter {
     public SpectraCommand(SpectraPlugin plugin) {
         register(new PlayCmd(plugin));
         register(new StopCmd(plugin));
-        register(new AdjustCmd(plugin));
+        register(new SyncCommand(plugin));
         register(new ImportCmd(plugin));
         register(new ReloadCmd(plugin));
         register(new VisualsCmd(plugin));
